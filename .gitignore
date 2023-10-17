@@ -3,5 +3,5 @@ node_modules/
 *.rtf
 .env.txt
 package-lock.json
-custompsych-2af53b8e5ef8.json
+custompsych-*.json
 .gcloudignore

@@ -1,0 +1,142 @@
+
+/* BODY ******************************************************************** */
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    height: 100vh;
+    padding-bottom: 20px;  /* Add padding here */
+
+}
+
+
+/* TITLE ******************************************************************* */
+#title {
+    margin-top: 200px;
+    display: none;
+}
+
+
+.setup_buttons {
+    text-align: center;
+    display: flex;
+    justify-content: center; /* Center the button horizontally */
+    margin-bottom: 20px; /* Add some margin to the bottom of the button's container */
+}
+
+/* LOGIN ******************************************************************* */
+#LOGIN_FORM {
+    display: none; /* initial state */
+}
+#startButton {
+    font-size: 1.5em;
+}
+#displayUsername {
+    font-size: 1em;
+    margin-top: 200px;
+    text-align: center;
+    color: #333;
+}
+
+
+/* INFO & CONSENT ********************************************************** */
+#INFO_SHEET {
+    display: none; /* initial state */
+    margin-left: 200px;
+    margin-right: 200px;
+    margin-top: 1000px;
+    margin-bottom: 100px;
+}
+#infoContinueButton {
+    font-size: 1.5em;
+}
+
+
+#CONSENT_FORM {
+    display: none; /* initial state */
+    margin-left: 200px;
+    margin-right: 20px;
+}
+#consentSubmit {
+    align-items: center;
+}
+#infoSheetCTA {
+    margin: 20px 0;  /* Spacing between rows */
+}
+.consentItem {
+  display: flex;
+  align-items: flex-start; /* Aligns with the first row of text */
+  justify-content: space-between; /* Balance the space */
+  margin: 20px 0;  /* Spacing between rows */
+}
+
+.radioContainer {
+  margin: 0 15px; /* Margin on both sides for balance */
+  display: flex;
+  align-items: center;
+}
+
+.questionContainer {
+  display: flex;
+  align-items: flex-start; /* Aligns with the first row of text */
+  justify-content: space-between; /* Buttons to the right, text to the left */
+  width: 80%; /* Take the full width */
+}
+.buttonContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px; /* Space between buttons and footer */
+}
+
+#noConsentGroup {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+footer.sticky-footer {
+    margin-bottom: 20px; /* Margin below the footer */
+    display: none;
+}
+.flexButtonContainer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.singleButtonContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+
+
+
+
+/* ENDING_SCREEN *********************************************************** */
+#ENDING_SCREEN {
+    display: none; /* initial state */
+}
+#endMessage {
+    display: flex; /* Added this line to make it a flex container */
+    flex-direction: column; /* Stack children vertically */
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5em;
+    text-align: center; /* Center text horizontally */
+    margin-top: 20px;
+}
+
+
+#myVideo {
+    max-width: 100%;
+}
+
+
+#continueButton {
+    margin-top: 20px;
+    font-size: 1.5em;
+}       

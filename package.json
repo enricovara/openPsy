@@ -1,0 +1,18 @@
+{
+  "name": "custompsych",
+  "version": "1.0.0",
+  "description": "A simple psychophysics experiment web app",
+  "main": "backend/myserver.js",
+  "scripts": {
+    "start": "node backend/myserver.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "googleapis": "^122.0.0",
+    "marked": "^9.1.0",
+    "path": "^0.12.7"
+  },
+  "devDependencies": {
+    "dotenv": "^16.3.1"
+  }
+}

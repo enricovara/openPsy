@@ -1,0 +1,7 @@
+node_modules/
+.DS_Store
+*.rtf
+.env.txt
+package-lock.json
+custompsych-2af53b8e5ef8.json
+.gcloudignore

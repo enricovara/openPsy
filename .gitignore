@@ -1,7 +1,7 @@
 node_modules/
 .DS_Store
 *.rtf
-.env.txt
 package-lock.json
 custompsych-*.json
 .gcloudignore
+# .env # no need since it only points to secret but doesn't actually contain it

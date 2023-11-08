@@ -3,112 +3,152 @@
 const { getAuthenticatedClient } = require('./googleSheetAuth');
 const marked = require('marked');
 
+
 /**
- * FESTCHES CONSENT DATA for a given prolificId from Milestones tab
+ * FETCH experiment TITLE, general PROLIFIC ERROR CODE, and the LAST STEP NUMBER
  *
- * @returns {Promise<object>} - entry corresponding to prolificId or null.
+ * @param {string} mainSheetID - The ID of the main sheet that contains experiment parameters.
+ * @return {Object} An object containing the experiment title, last step number, and general prolific error code.
  */
-async function fetchConsentLogs(prolificId) {
+async function getBaseExpParams(mainSheetID) {
     const googleSheets = await getAuthenticatedClient();
-    const response = await googleSheets.spreadsheets.values.get({
+    
+    // Define the starting row for the lastStep range
+    const lastStepStartRow = 17;
+    const controlRoomRange = 'controlRoom!';
+    const lastStepColumn = 'E';
+    const titleAndErrorCodeRanges = [`${controlRoomRange}B5`, `${controlRoomRange}J5`];
+
+    // Prepare the batchGet request
+    const ranges = [...titleAndErrorCodeRanges, `${controlRoomRange}${lastStepColumn}${lastStepStartRow}:${lastStepColumn}`];
+
+    // getting title, generalProlificErrorCode, and lastStep;
+    const response = await googleSheets.spreadsheets.values.batchGet({
         spreadsheetId: mainSheetID,
-        range: 'participantLog!B6:B'
+        ranges: ranges
     });
 
-    const rows = response.data.values || [];
-    const entry = rows.find(row => row[0] === prolificId);
-    return entry ? { id: entry[0], status: entry[1], datetime: entry[2] } : null;
+    // Parse response
+    const [title, generalProlificErrorCode, stepsColumn] = response.data.valueRanges;
+
+    // Extracting the experiment title and general prolific error code directly
+    const expTitle = title.values[0][0];
+    const errorCode = generalProlificErrorCode.values[0][0];
+
+    // Calculate the last step based on the last non-empty cell in the specified steps column
+    const lastNonEmptyStepValue = stepsColumn.values.filter(row => row.length > 0).pop();
+    const lastStepIndex = stepsColumn.values.indexOf(lastNonEmptyStepValue);
+    const lastStepCellRange = `${controlRoomRange}B${lastStepStartRow + lastStepIndex}`;
+    
+    // Fetch the corresponding last step value
+    const lastStepResponse = await googleSheets.spreadsheets.values.get({
+        spreadsheetId: mainSheetID,
+        range: lastStepCellRange
+    });
+
+    const lastStep = lastStepResponse.data.values[0][0];
+
+    // Return the extracted data
+    return {
+        title: expTitle,
+        generalProlificErrorCode: errorCode,
+        lastStep: Number(lastStep) // Assuming lastStep is a number
+    };
 }
 
 
-
 /**
- * APPENDS new CONSENT entry
+ * FETCH step details
  *
- * @param {string} prolificId
- * @param {string} status
- * @param {string} datetime
+ * @param {string} mainSheetID - The ID of the main sheet that contains experiment parameters.
+ * @param {string} prolificID - The participant's Prolific ID.
+ * @param {number} stepNumber - The step number to get details for.
+ * @return {Object} An object containing the step type, fail exit code, success exit code, step do, and step status.
  */
-async function appendConsentLog(prolificId, status, datetime) {
+async function getStepDetails(mainSheetID, prolificID, stepNumber) {
     const googleSheets = await getAuthenticatedClient();
-    await googleSheets.spreadsheets.values.append({
-        spreadsheetId: mainSheetID,
-        range: 'participantLog!B6:B',
-        valueInputOption: 'RAW',
-        resource: {
-            values: [[prolificId, status, datetime]]
+    const controlRoomRange = 'controlRoom!';
+    const participantLogRange = 'participantLog!';
+    let stepDetails = {
+        type: null,
+        failExitCode: null,
+        successExitCode: null,
+        do: null,
+        status: null
+    };
+
+    try {
+        // Fetch all values in column B of controlRoom to find the row index
+        const stepIndexResponse = await googleSheets.spreadsheets.values.get({
+            spreadsheetId: mainSheetID,
+            range: `${controlRoomRange}B:B`
+        });
+
+        const stepIndex = stepIndexResponse.data.values.findIndex(row => row[0] == stepNumber);
+
+        if (stepIndex === -1) throw new Error('Step number not found in controlRoom tab');
+
+        // Fetch step details from the controlRoom tab
+        const stepDetailsRange = `${controlRoomRange}E${stepIndex + 1}:H${stepIndex + 1}`;
+        const stepDetailsResponse = await googleSheets.spreadsheets.values.get({
+            spreadsheetId: mainSheetID,
+            range: stepDetailsRange
+        });
+
+        [stepDetails.type, stepDetails.do, stepDetails.failExitCode, stepDetails.successExitCode] = stepDetailsResponse.data.values[0];
+
+        // Fetch participant's row index in participantLog
+        const participantRowIndexResponse = await googleSheets.spreadsheets.values.get({
+            spreadsheetId: mainSheetID,
+            range: `${participantLogRange}B:B`
+        });
+
+        const participantRowIndex = participantRowIndexResponse.data.values.findIndex(row => row[0] == prolificID);
+        
+        // If Prolific ID not found, append it to the first empty row in participantLog
+        if (participantRowIndex === -1) {
+            const lastRowIndex = participantRowIndexResponse.data.values.length;
+            // Append the new Prolific ID to column B
+            await googleSheets.spreadsheets.values.append({
+                spreadsheetId: mainSheetID,
+                range: `${participantLogRange}B${lastRowIndex + 1}`,
+                valueInputOption: 'USER_ENTERED',
+                resource: {
+                    values: [[prolificID]]
+                }
+            });
+            
+            // Set participantRowIndex to the new row index
+            participantRowIndex = lastRowIndex;
         }
-    });
+        
+        // Fetch step number's column index in participantLog
+        const stepColumnIndexResponse = await googleSheets.spreadsheets.values.get({
+            spreadsheetId: mainSheetID,
+            range: `${participantLogRange}4:4`
+        });
+
+        const stepColumnIndex = stepColumnIndexResponse.data.values[0].findIndex(cell => cell == stepNumber);
+
+        if (stepColumnIndex === -1) throw new Error('Step number not found in participantLog tab');
+
+        // Fetch step status from participantLog
+        const stepStatusCell = `${participantLogRange}${String.fromCharCode(65 + stepColumnIndex)}${participantRowIndex + 1}`;
+        const stepStatusResponse = await googleSheets.spreadsheets.values.get({
+            spreadsheetId: mainSheetID,
+            range: stepStatusCell
+        });
+
+        stepDetails.status = stepStatusResponse.data.values[0][0] || null;
+
+        return stepDetails;
+    } catch (error) {
+        console.error('Error fetching step details:', error);
+        throw error;
+    }
 }
 
 
-/**
- * Fetches data from tab named 'infoSheet' and converts it into Markdown format.
- * 
- * @returns {Promise<string>} - HTML content converted from Markdown.
- */
-async function fetchInfoSheet() {
-    const googleSheets = await getAuthenticatedClient();
-    const response = await googleSheets.spreadsheets.values.get({
-        spreadsheetId: mainSheetID,
-        range: 'infoSheet!A3:B30'
-    });
-    const rows = response.data.values || [];
-    let markdownText = '';
-    rows.forEach(row => {
-        if (row.length >= 2) {
-            const title = row[0].trim();
-            const content = row[1].trim();
-            markdownText += `## ${title}\n\n${content}\n\n`;
-        }
-    });
+//////////////////////////////////////////////////////////////////////////////
 
-    return marked.marked(markdownText);
-} 
-
-
-
-
-/**
- * Fetches consent questions from tab named 'consentQs' and returns them as an array of strings.
- * 
- * @returns {Promise<string[]>} - Array of consent questions as strings.
- */
-async function fetchConsentQuestions() {
-    const googleSheets = await getAuthenticatedClient();
-    const response = await googleSheets.spreadsheets.values.get({
-        spreadsheetId: mainSheetID,
-        range: 'consentQs!A3:B30'
-    });
-
-    const rows = response.data.values || [];
-    const consentQuestions = rows.map(row => row[0].trim());
-
-    return consentQuestions;
-}
-
-
-
-/**
- * Fetches video data for a given username from Sheet1
- *
- * @param {string} userName - The username to fetch videos for
- * @returns {Promise<string[]>} - Array of videos or empty array.
- */
-async function fetchUserVideos(userName) {
-    const googleSheets = await getAuthenticatedClient();
-    const response = await googleSheets.spreadsheets.values.get({
-        spreadsheetId: "1xkA57uRsBJcEPQFqOxwL6VeqnukOy4Wx0HvVNafqw8g",
-        range: 'Sheet1'
-    });
-    const rows = response.data.values || [];
-    const headers = rows[0];
-    const userColumnIndex = headers.indexOf(userName);
-    const userVideos = userColumnIndex >= 0 ? rows.slice(1).map(row => row[userColumnIndex]).filter(Boolean) : [];
-
-    return userVideos;
-}
-
-
-
-module.exports = { fetchInfoSheet, fetchConsentQuestions, fetchConsentLogs, appendConsentLog, fetchUserVideos };
+module.exports = { getBaseExpParams, getStepDetails };

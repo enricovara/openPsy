@@ -1,29 +1,61 @@
 window.addEventListener('load', async function () {
 
-    title = document.getElementById('title');
-    displayUsername = document.getElementById('displayUsername');
+    window.generalProlificErrorCode = "EXPERIMENT_DATABASE_NOT_FOUND";
+
+    window.title = document.getElementById('title');
+    window.displayUsername = document.getElementById('displayUsername');
     
-    // display title
+    // display (temp) title
     title.style.display = 'block';
 
 
-    // LOGIN USER AND LOAD INSTRUCTIONS FROM SHEET USING QUERY PARAMS
     LOGIN_FORM = document.getElementById('LOGIN_FORM');
     startButton = document.getElementById('startButton');
     ENDING_SCREEN = document.getElementById('ENDING_SCREEN');
     endMessage = document.getElementById('endMessage');
     returnToProlific = document.getElementById('returnToProlific');
     
-    await doLoginLogic();
+    
+    // ESTABLISH RELATIONSHIT WITH CONTROL ROOM SHEET
+    await getBaseExpParams();
 
-    /*
-    let CONSENT_FORM = document.getElementById('CONSENT_FORM');
-    let endMessage = document.getElementById('endMessage');
-    let startButton = document.getElementById('startButton');
-    let noConsentBTN = document.getElementById('noConsentBTN');
-    let consentBTN = document.getElementById('consentBTN');
-    let returnToProlific = document.getElementById('returnToProlific');
-    */
+
+    // CYCLE THROUGH THE EXPERIMENT STEPS
+
+    // Define a mapping of step types to their corresponding functions
+    const stepTypeFunctions = {
+        "InfoConsent": doInfoConsent,
+        "ScreeningQs": doScreeningQs,
+        "CheckAudio": doCheckAudio,
+        "CheckBT": doCheckBT,
+        "CheckNoise": doCheckNoise,
+        "MiscDemoQs": doMiscDemoQs,
+        "CheckAttention": doCheckAttention,
+    };
+        
+    for (let number = 1; number <= expParams.lastStep; number++) {
+        window.step = { number: number }; // Create the step object with the current number
+        
+        await prepNextStep(step);
+        // defines
+            // step.type (type string or Null)
+            // step.failExitCode (type string or Null)
+            // step.successExitCode (type string or Null)
+            // step.do (type string)
+            // step.status (type string or Null)
+    
+        // If step exists and do is Always, or if not done and do is Once:
+        // call the function based on step.type using the mapping object
+        if (step.type && stepTypeFunctions[step.type] && (step.do === "Always" || (step.do === "Once" && step.status === "None"))) {
+            await stepTypeFunctions[step.type]();
+        } else {
+            console.error('Function not found for step type:', step.type);
+        }
+    }
+});
+
+
+  /*
 
 
     async function executeSteps(numSteps) {
@@ -262,7 +294,6 @@ window.addEventListener('load', async function () {
   
   
   
-  /*
     
     
     

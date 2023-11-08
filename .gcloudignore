@@ -12,6 +12,7 @@
 # below:
 .git
 .gitignore
+# .env # fine to have it uploaded because only links to secret but not needed as link also in .yaml
 
 # Node.js dependencies:
 node_modules/

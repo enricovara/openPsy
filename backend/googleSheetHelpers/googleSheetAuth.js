@@ -1,13 +1,15 @@
 const { google } = require('googleapis');
 const path = require('path');
 
-const keyFile = '../../custompsych-2af53b8e5ef8.json';
-
 
 async function getAuthenticatedClient() {
 
     try {
-        const keyFilePath = path.resolve(__dirname, keyFile);
+        console.log(__dirname)
+        console.log(process.env.KEY_FILE)
+        const keyFilePath = path.resolve(process.env.KEY_FILE);
+        console.log(keyFilePath)
+        console.log(__dirname)
         const auth = new google.auth.GoogleAuth({
             keyFile: keyFilePath,
             scopes: ['https://www.googleapis.com/auth/spreadsheets']

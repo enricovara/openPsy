@@ -5,4 +5,5 @@ automatic_scaling:
   min_instances: 1
   max_instances: 10
 env_variables:
-  KEY_FILE: '../custompsych-88cecf1d90b5.json'
+  KEY_FILE: 'custompsych-88cecf1d90b5.json'
+  NODE_ENV: 'production'

@@ -4,7 +4,8 @@
   "description": "A simple psychophysics experiment web app",
   "main": "backend/myserver.js",
   "scripts": {
-    "start": "node backend/myserver.js"
+    "start": "node backend/myserver.js",
+    "dev": "NODE_ENV=development node -r dotenv/config backend/myserver.js"
   },
   "dependencies": {
     "express": "^4.18.2",

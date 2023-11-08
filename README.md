@@ -1,5 +1,5 @@
 
-# Custompsych Application Environment Configuration Guide\
+# Custompsych Application Environment Configuration Guide
 
 This document serves as a guide to manage and configure environment settings for the Custompsych application, both for local development and for deployment to Google Cloud App Engine.
 

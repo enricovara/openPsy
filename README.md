@@ -81,3 +81,11 @@ The start command in package.json is optimized for production and does not overr
 - **Environment Variable Consistency:** If you use the same secrets for local development and cloud deployment, make sure the KEY_FILE variable are consistently named and valued across your local .env file and the app.yaml file for production.
 
 - **Separation of Environments:** The configuration splits the handling of environment variables between local development (dotenv) and production (App Engine's environment configuration) to avoid cross-environment issues.
+
+
+## MISC
+- **Testing backend APIs**: you can test the apis by running 
+```
+curl -i http://localhost:3001/api/[infoSheet or whatever the name of the api is]
+```
+in terminal

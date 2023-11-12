@@ -5,11 +5,7 @@ const path = require('path');
 async function getAuthenticatedClient() {
 
     try {
-        console.log(__dirname)
-        console.log(process.env.KEY_FILE)
         const keyFilePath = path.resolve(process.env.KEY_FILE);
-        console.log(keyFilePath)
-        console.log(__dirname)
         const auth = new google.auth.GoogleAuth({
             keyFile: keyFilePath,
             scopes: ['https://www.googleapis.com/auth/spreadsheets']

@@ -1,17 +1,21 @@
 // consentFormUtils.js
 
+
 /**
  * Fetch and populate the information sheet.
  * The sheet data is fetched from an API and injected into the HTML.
  */
 async function updateHTMLWithInfoSheet() {
   try {
-    const response = await fetch(`/api/infoSheet`);
+    const response = await fetch(`/api/infoSheet?mainSheetID=${window.expParams.mainSheetID}`);
     const data = await response.text();
     document.getElementById('infoSheet').innerHTML = data;
 
   } catch (error) {
     console.error(`Failed to fetch or populate information sheet: ${error}`);
+    title.textContent = "Error 005.1.1";
+    displayUsername.textContent = `Experiment flow error.`;
+    await handleRedirection(`https://app.prolific.co/submissions/complete?cc=${window.prolificErrorCode}`);
   }
 }
       
@@ -23,7 +27,8 @@ async function updateHTMLWithInfoSheet() {
  */
 async function updateHTMLConsentQuestions() {
   try {
-    const response = await fetch(`/api/consentQuestions`);
+    const response = await fetch(`/api/consentQuestions?mainSheetID=${window.expParams.mainSheetID}`);
+
     if (!response.ok) {
       throw new Error(`Server responded with status: ${response.status}`);
     }
@@ -53,6 +58,9 @@ async function updateHTMLConsentQuestions() {
 
   } catch (error) {
     console.error(`Failed to fetch or populate consent questions: ${error}`);
+    title.textContent = "Error 005.1.2";
+    displayUsername.textContent = `Experiment flow error.`;
+    await handleRedirection(`https://app.prolific.co/submissions/complete?cc=${window.prolificErrorCode}`);
   }
 }
 
@@ -76,19 +84,3 @@ function toggleConsentButton() {
   }
 }
 
-
-/**
- * Fetch from or Post to consent log tab
- */
-async function checkConsentLogs() {
-    const response = await fetch(`/api/getConsentLogs/${prolificID}/${mainSheetID}`);
-    const data = await response.json();
-    return data;
-}
-async function saveConsentLog(prolificId, status, datetime) {
-    await fetch('/api/appendConsentLog', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({prolificId, status, datetime})
-    });
-}

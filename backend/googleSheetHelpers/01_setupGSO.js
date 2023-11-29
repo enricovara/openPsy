@@ -1,10 +1,21 @@
 // setupGSO.js
 
-const { getAuthenticatedClient } = require('./googleSheetAuth');
+const { getAuthenticatedClient } = require('./00_googleSheetAuth');
 
-const participantLogRange = 'participantLog!';
-const controlRoomRange = 'controlRoom!';
+const controlRoomTab = 'controlRoom!';
+const titleCell = 'B5'
+const generalErrorCell = 'K5'
+const stepsCells = 'B8:G'
+const stepNumbCellIdx = 0
+const stepTypeCellIdx = 2
+const stepTODOCellIdx = 4
+const stepExitCellIdx = 5
 
+
+const participantLogTab = 'participantLog!';
+const PIDColumn = 'B'
+const firstStepColumn = 'C'
+const stepNumRow = '4'
 
 
 /**
@@ -20,8 +31,8 @@ async function getBaseExpParams(mainSheetID, gSheetsAuthClient) {
     try {
         
         // Prepare the batchGet request
-        const titleAndErrorCodeRange = [`${controlRoomRange}B5`, `${controlRoomRange}J5`];
-        const stepsRange = `${controlRoomRange}B8:G`;
+        const titleAndErrorCodeRange = [`${controlRoomTab}${titleCell}`, `${controlRoomTab}${generalErrorCell}`];
+        const stepsRange = `${controlRoomTab}${stepsCells}`;
     
         const ranges = [...titleAndErrorCodeRange, stepsRange];
     
@@ -42,10 +53,10 @@ async function getBaseExpParams(mainSheetID, gSheetsAuthClient) {
         const stepsTypeDoCode = {};
          // Process each row in the steps range to build the stepsTypeDoCode object
         steps.values.forEach((row) => {
-            const stepNum = row[0];
-            const type = row[3] || ""; // this is the step type identifier
-            const toDo = row[4] || ""; // identifies steps which require doing
-            const completionCode = row[5] || ""; // prolific "completion"/exit code
+            const stepNum = row[stepNumbCellIdx];
+            const type = row[stepTypeCellIdx] || ""; // this is the step type identifier
+            const toDo = row[stepTODOCellIdx] || ""; // identifies steps which require doing
+            const completionCode = row[stepExitCellIdx] || ""; // prolific "completion"/exit code
     
             // Check if stepNum is a valid integer
             if (stepNum && Number.isInteger(Number(stepNum))) {
@@ -84,7 +95,7 @@ async function loginParticipant(mainSheetID, prolificID, gSheetsAuthClient) {
         // Fetch participant's row index in participantLog
         const participantRowIndexResponse = await gSheetsAuthClient.spreadsheets.values.get({
             spreadsheetId: mainSheetID,
-            range: `${participantLogRange}B:B`
+            range: `${participantLogTab}${PIDColumn}:${PIDColumn}`
         });
     
         let participantRowIndex = participantRowIndexResponse.data.values.findIndex(row => row[0] == prolificID);
@@ -94,7 +105,7 @@ async function loginParticipant(mainSheetID, prolificID, gSheetsAuthClient) {
             // Append the new Prolific ID to column B
             await gSheetsAuthClient.spreadsheets.values.append({
                 spreadsheetId: mainSheetID,
-                range: `${participantLogRange}B${lastRowIndex + 1}`,
+                range: `${participantLogTab}${PIDColumn}${lastRowIndex + 1}`,
                 valueInputOption: 'USER_ENTERED',
                 resource: {
                     values: [[prolificID]]
@@ -132,8 +143,8 @@ async function getStepStatus(mainSheetID, prolificID, baseExpParams, participant
     try {
         // Define the ranges for batchGet: one for step numbers, another for statuses
         const ranges = [
-            `${participantLogRange}C4:4`, // Range for step numbers (headers)
-            `${participantLogRange}C${participantRowIndex + 1}:${participantRowIndex + 1}` // Range for step statuses
+            `${participantLogTab}${firstStepColumn}${stepNumRow}:${stepNumRow}`, // Range for step numbers (headers)
+            `${participantLogTab}${firstStepColumn}${participantRowIndex + 1}:${participantRowIndex + 1}` // Range for step statuses
         ];
 
         // Fetch both step numbers and their statuses in a single batchGet call

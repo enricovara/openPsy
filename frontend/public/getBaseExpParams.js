@@ -38,7 +38,7 @@ async function getBaseExpParams() {
     } else {
         console.log(`   Redirecting user with error code`);
         displayUsername.textContent = `No ID or EXPERIMENT CODE detected.`;
-        title.textContent = "Error 001";
+        title.textContent = "Error 000.0.1";
         await handleRedirection(`https://app.prolific.co/submissions/complete?cc=${window.prolificErrorCode}`);
     }
     console.log(``);
@@ -110,7 +110,7 @@ async function getBaseExpParams() {
     } catch (error) {
         console.error('There was a problem with the fetch operation:', error);
         console.log(`   Redirecting user with error code`);
-        title.textContent = "Error 002";
+        title.textContent = "Error 000.0.2";
         displayUsername.textContent = `Could not connect to experiment.`;
         await handleRedirection(`https://app.prolific.co/submissions/complete?cc=${window.prolificErrorCode}`);
     }

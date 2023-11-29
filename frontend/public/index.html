@@ -5,6 +5,7 @@
 <head>
     <title>CustomPsych</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
 </head>
 
 
@@ -32,7 +33,7 @@
     </div>
     
         
-    <div id="CONSENT_FORM">
+    <div id="CONSENT_FORM" class="formContainer">
         <div id="infoSheetCTA">
             <strong> <!-- Added strong tag for bold text -->
                 <p>Thank you for considering your participation in this study.</p>
@@ -40,7 +41,6 @@
             </strong> <!-- Closing strong tag -->
         </div>
 
-    
     
         <div id="consentQuestions"></div>
     
@@ -56,17 +56,52 @@
                 </div>
             </div>
         </div>
+        
+    </div>
+        
+    <!-- ########################## SCREENING Qs ##########################-->
 
-
+    <div id="SCREENING_FORM" class="formContainer">
+        <div id="screeningCTA">
+            <strong> <!-- Added strong tag for bold text -->
+                <p>Please read each statement carefully and select the most appropriate answer.</p>
+            </strong> <!-- Closing strong tag -->
+        </div>
+        
+        <div id="screeningQuestions"></div>
+    
+        <div id="screeningSubmit" class="buttonContainer">
+            <div class="flexButtonContainer">
+                <div class="singleButtonContainer">
+                    <button id="screeningBTN" style="padding: 8px;" disabled>Submit and continue</button>
+                    <div style="color: #888; margin-top: 8px;">__</div>
+                </div>
+            </div>
+        </div>
 
     </div>
+    
+    <!-- ########################## MISCDEMO Qs ##########################-->
 
-    <!-- ########################## SCREENING Qs ##########################
-    <div id="screeningQuestions" style="display: none;">
+    <div id="MISCDEMO_FORM" class="formContainer">
+        <div id="miscDemoCTA">
+            <strong> <!-- Added strong tag for bold text -->
+                <p>Please read each statement carefully and select the most appropriate answer.</p>
+            </strong> <!-- Closing strong tag -->
+        </div>
+        
+        <div id="miscDemoQuestions"></div>
+    
+        <div id="miscDemoSubmit" class="buttonContainer">
+            <div class="flexButtonContainer">
+                <div class="singleButtonContainer">
+                    <button id="miscDemoBTN" style="padding: 8px;" disabled>Submit and continue</button>
+                    <div style="color: #888; margin-top: 8px;">__</div>
+                </div>
+            </div>
+        </div>
+
     </div>
-    <div id="screeningSubmit" style="align-items: center; display: none;">
-        <button id="screeningBTN" style="padding: 8px;" disabled>Confirm and continue</button>
-    </div>                                                                  -->
     
     <!-- ########################## EXP SEQUENCE ########################## -->    
 
@@ -74,7 +109,9 @@
         <!-- text from .md file will be loaded here -->
     </div>
 
-    <video id="myVideo" style="display: none;"></video>
+    <div id="mediaContainer" style="width: 100%; max-width: 640px; margin: auto; display: none;">
+    <!-- Media elements will be dynamically added here -->
+    </div>
 
     <button id="continueButton" style="display: none;" disabled>Continue</button>
 
@@ -122,9 +159,29 @@
     <script src="getBaseExpParams.js"></script>
     
     <script src="doInfoConsent.js"></script>
-    <script src="consentFormUtils.js"></script>
+    <script src="doScreening.js"></script>
+    <script src="doMiscDemo.js"></script>
+    <script src="formUtils.js"></script>
+    
+    <script src="doInstructionsBreak.js"></script>
+    
+    <script src="doSimpleBlock.js"></script>
+    <script src="simpleBlockUtils.js"></script>
+    <script src="participantResponse/respMCQ.js"></script>
+
+    <div id="GRID_HTML"></div>
+
+    
+    <!--
+    <div id="responseContainer" style="display: none;">
+        <textarea id="userInput" placeholder="Enter your response here"></textarea>
+        <button id="submitResponse">Submit</button>
+    </div>
+    -->
+
     
     <script src="redirectHandler.js"></script>
+    <script src="savingUtils.js"></script>
 
 
 </body>

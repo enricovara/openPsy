@@ -4,184 +4,46 @@
 
 <head>
     <title>CustomPsych</title>
-    <link rel="stylesheet" href="styles.css">
+    <!--<link rel="stylesheet" href="styles.css"> -->
     <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh; /* Use the full viewport height */
+            overflow: hidden; /* Prevent the body from scrolling */
+            display: flex;
+            justify-content: center;
+        }
+    </style>
 </head>
 
 
 <body>
 
-    <!-- ##########################  TITLE TEXT  ########################## -->    
-    <h1 id="title">Your experiment is loading...</h1>
-    
-    
-    <!-- ############################# LOGIN ############################## -->    
-    <div id="LOGIN_FORM">
-        <div class="setup_buttons">
-            <button id="startButton">Start</button>
-        </div>
-        <div id="displayUsername"></div>
-    </div>
-
-    <!-- ########################## CONSENT FORM ########################## -->
-    <!-- note: sequence&media will be generated/imported while this is read -->
-    <div id="INFO_SHEET">
-        <div id="infoSheet"></div>     
-        <div class="setup_buttons">
-            <button id="infoContinueButton">Continue</button>
-        </div>
-    </div>
-    
-        
-    <div id="CONSENT_FORM" class="formContainer">
-        <div id="infoSheetCTA">
-            <strong> <!-- Added strong tag for bold text -->
-                <p>Thank you for considering your participation in this study.</p>
-                <p>Please read each statement carefully and indicate whether you agree or disagree with each statement.</p>
-            </strong> <!-- Closing strong tag -->
-        </div>
-
-    
-        <div id="consentQuestions"></div>
-    
-        <div id="consentSubmit" class="buttonContainer">
-            <div class="flexButtonContainer">
-                <div class="singleButtonContainer">
-                    <button id="consentBTN" style="padding: 8px;" disabled>Consent and continue</button>
-                    <div style="color: #888; margin-top: 8px;">__</div>
-                </div>
-                <div class="singleButtonContainer">
-                    <button id="noConsentBTN" style="padding: 8px;">Quit and return to Prolific</button>
-                    <div style="color: #888; margin-top: 8px;">without giving consent</div>
-                </div>
-            </div>
-        </div>
-        
-    </div>
-        
-    <!-- ########################## SCREENING Qs ##########################-->
-
-    <div id="SCREENING_FORM" class="formContainer">
-        <div id="screeningCTA">
-            <strong> <!-- Added strong tag for bold text -->
-                <p>Please read each statement carefully and select the most appropriate answer.</p>
-            </strong> <!-- Closing strong tag -->
-        </div>
-        
-        <div id="screeningQuestions"></div>
-    
-        <div id="screeningSubmit" class="buttonContainer">
-            <div class="flexButtonContainer">
-                <div class="singleButtonContainer">
-                    <button id="screeningBTN" style="padding: 8px;" disabled>Submit and continue</button>
-                    <div style="color: #888; margin-top: 8px;">__</div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-    
-    <!-- ########################## MISCDEMO Qs ##########################-->
-
-    <div id="MISCDEMO_FORM" class="formContainer">
-        <div id="miscDemoCTA">
-            <strong> <!-- Added strong tag for bold text -->
-                <p>Please read each statement carefully and select the most appropriate answer.</p>
-            </strong> <!-- Closing strong tag -->
-        </div>
-        
-        <div id="miscDemoQuestions"></div>
-    
-        <div id="miscDemoSubmit" class="buttonContainer">
-            <div class="flexButtonContainer">
-                <div class="singleButtonContainer">
-                    <button id="miscDemoBTN" style="padding: 8px;" disabled>Submit and continue</button>
-                    <div style="color: #888; margin-top: 8px;">__</div>
-                </div>
-            </div>
-        </div>
-
-    </div>
-    
-    <!-- ########################## EXP SEQUENCE ########################## -->    
-
-    <div id="initialInstructions" style="display: none;">
-        <!-- text from .md file will be loaded here -->
-    </div>
-
-    <div id="mediaContainer" style="width: 100%; max-width: 640px; margin: auto; display: none;">
-    <!-- Media elements will be dynamically added here -->
-    </div>
-
-    <button id="continueButton" style="display: none;" disabled>Continue</button>
-
-    
-    <!-- ######################### QUIT/COMPLETE ########################## -->    
-    <div id="ENDING_SCREEN">
-        <div id="endMessage"></div>
-        <div class="setup_buttons">
-            <button id="returnToProlific">Quit and return to Prolific</button>
-        </div>
-    </div>
-
-    <!--
-    <div id="endMessage" style="display: none;">
-        <h2>Thanks for participating!</h2>
-        The experiment was completed succesfully. Your completion code is <strong>C157BQGO</strong>.<br>Click the button below to return to prolific and complete the study automatically.
-    </div>
-    <div id="badHardwareMessage" style="display: none;">
-        <h2>Unfortunately you must be using a commputer and wearing wired headphones or earphones for this experiment.</h2>
-        Click the button below to return to prolific automatically, without completing the study. Your completion code is <strong>CO5U2AY3</strong>.<br>
-    </div>
-    <div id="attentionFailMessage" style="display: none;">
-        <h2>Unfortunately you failed the attention checks.</h2>
-        Click the button below to return to prolific automatically, without completing the study. Your completion code is <strong>C1DRIS9J</strong>.<br>
-    </div>
-    -->
-    
-    <!-- ######################## BLUETOOTH CHECK ######################### -->    
-    
-    <div id="bluetoothModal" style="display: none; position: fixed; z-index: 1001; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.7);">
-        <div style="background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 70%; text-align: center;">
-            <p>It seems you may be using a Bluetooth audio device. Bluetooth devices change the audio significantly, rendering all data useless for the intended purpose. Please use a wired audio connection.</p>
-            <button id="quitBluetoothButton" style="margin-right: 20px;">Quit and return to Prolific</button>
-            <button id="confirmBluetoothButton">Ignore and continue anyway</button>
-        </div>
-    </div>
-
-    
-    <footer class="sticky-footer">
-        Copyright © 2023 Enrico Varano<br>
-    </footer>    
-
-
     <script src="main.js"></script>
-    <script src="getBaseExpParams.js"></script>
     
-    <script src="doInfoConsent.js"></script>
-    <script src="doScreening.js"></script>
-    <script src="doMiscDemo.js"></script>
-    <script src="formUtils.js"></script>
+    <script src="A_setup/getExpParamsAndLogin.js"></script>
     
-    <script src="doInstructionsBreak.js"></script>
-    
-    <script src="doSimpleBlock.js"></script>
-    <script src="simpleBlockUtils.js"></script>
-    <script src="participantResponse/respMCQ.js"></script>
+    <script src="A_setup/doInfoConsent.js"></script>
+    <script src="A_setup/doScreening.js"></script>
+    <script src="A_setup/doMiscDemo.js"></script>
+    <script src="A_setup/utils/formUtils.js"></script>
 
-    <div id="GRID_HTML"></div>
-
+    <script src="B_checks/bluetoothCheck.js"></script>
+    <script src="B_checks/backgroundNoiseCheck.js"></script>
+    <script src="B_checks/utils/checksUtils.js"></script>
     
-    <!--
-    <div id="responseContainer" style="display: none;">
-        <textarea id="userInput" placeholder="Enter your response here"></textarea>
-        <button id="submitResponse">Submit</button>
-    </div>
-    -->
-
+    <script src="C_intructions/doInstructionsBreak.js"></script>
     
-    <script src="redirectHandler.js"></script>
-    <script src="savingUtils.js"></script>
+    <script src="D_simpleBlock/doSimpleBlock.js"></script>
+    <script src="D_simpleBlock/utils/simpleBlockUtils.js"></script>
+
+    <script src="responseForms/respMCQ.js"></script>
+    
+    <script src="utils/UI.js"></script>
+    <script src="utils/redirectHandler.js"></script>
+    <script src="utils/savingUtils.js"></script>
 
 
 </body>

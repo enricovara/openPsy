@@ -28,7 +28,7 @@ async function fetchBlockParams(mainSheetID, prolificID) {
         `simpleBlock!C${FIRST_DATA_ROW}:B` // BLOCK_NAMES_RANGE
     ];
     
-    console.log(RANGES)
+    //console.log(RANGES)
 
     try {
         // Fetch all data with a single batchGet call
@@ -47,8 +47,8 @@ async function fetchBlockParams(mainSheetID, prolificID) {
         const messageBetweenBlocks = sheetData[3].values[0][0];
         const messageAfterLastBlock = sheetData[4].values[0][0];
         
-        console.log(`presentationLogic: ${presentationLogic}`);
-        console.log(`blocksN: ${blocksN}`);
+        //console.log(`presentationLogic: ${presentationLogic}`);
+        //console.log(`blocksN: ${blocksN}`);
         
         // Fetching and processing the questions and answers
         const questionsData = sheetData[5].values;
@@ -61,7 +61,7 @@ async function fetchBlockParams(mainSheetID, prolificID) {
             return acc;
         }, []);
 
-        console.log(`Questions and Answers: ${JSON.stringify(questionsAndAnswers, null, 2)}`);
+        //console.log(`Questions and Answers: ${JSON.stringify(questionsAndAnswers, null, 2)}`);
     
 
         // Check presentation logic
@@ -76,15 +76,15 @@ async function fetchBlockParams(mainSheetID, prolificID) {
             return acc;
         }, {});
         
-        console.log(`blockList: ${JSON.stringify(blockList, null, 2)}`);
+        //console.log(`blockList: ${JSON.stringify(blockList, null, 2)}`);
 
 
         // Find block media address and block cell range
         const completedBlocksList = sheetData[6].values;
         const blockMediaAddressList = sheetData[7].values;
         const blockNamesList = sheetData[8].values;
-        console.log(`completedBlocksList: ${JSON.stringify(completedBlocksList, null, 2)}`); // in the test case I get a list of 2 elements
-        console.log(`blockMediaAddressList: [redacted because too long]`); // in the test case I get a list of 1000 elements
+        //console.log(`completedBlocksList: ${JSON.stringify(completedBlocksList, null, 2)}`); // in the test case I get a list of 2 elements
+        //console.log(`blockMediaAddressList: [redacted because too long]`); // in the test case I get a list of 1000 elements
         let blockMediaAddress, blockCellRow;
         const firstEmptyIndex = completedBlocksList.findIndex(row => !row[0]);
         const targetIndex = firstEmptyIndex !== -1 ? firstEmptyIndex : completedBlocksList.length;
@@ -93,9 +93,9 @@ async function fetchBlockParams(mainSheetID, prolificID) {
         blockCellRow = (FIRST_DATA_ROW + targetIndex).toString();
 
         
-        console.log(`blockMediaAddress: ${blockMediaAddress}`);
-        console.log(`blockName: ${blockName}`);
-        console.log(`blockCellRow: ${blockCellRow}`);
+        //console.log(`blockMediaAddress: ${blockMediaAddress}`);
+        //console.log(`blockName: ${blockName}`);
+        //console.log(`blockCellRow: ${blockCellRow}`);
         
         if (!blockMediaAddress) {
             throw new Error("Block media address not found");
@@ -104,12 +104,12 @@ async function fetchBlockParams(mainSheetID, prolificID) {
         // Calculate nthBlockParticipant
         const nthBlockParticipant = completedBlocksList.filter(row => row[0] === prolificID).length + 1;
 
-        console.log(`nthBlockParticipant: ${nthBlockParticipant}`);
+        //console.log(`nthBlockParticipant: ${nthBlockParticipant}`);
 
         // Fetches the contents of the Google Drive folder and returns a map of file names and direct download links.
         const driveFolderContents = await fetchDriveFolderContents(blockMediaAddress);
         
-        console.log(`driveFolderContents: ${JSON.stringify(driveFolderContents, null, 2)}`); // in the test case I get a list of 2 elements
+        //console.log(`driveFolderContents: ${JSON.stringify(driveFolderContents, null, 2)}`); // in the test case I get a list of 2 elements
 
         // CHECKOUT block
         await checkoutBlock(mainSheetID, blockCellRow, prolificID);

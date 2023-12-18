@@ -242,10 +242,10 @@ async function fetchConsentLogs(prolificId) {
  */
 
 async function updateStepProgress(prolificId, stepValue) {
-    console.log("Step 1: Initiating Google Sheets API client authentication.");
+    //console.log("Step 1: Initiating Google Sheets API client authentication.");
     const googleSheets = await getAuthenticatedClient();
 
-    console.log("Fetching existing data from column B to identify the row for the given prolificId.");
+    //console.log("Fetching existing data from column B to identify the row for the given prolificId.");
     let response = await googleSheets.spreadsheets.values.get({
         spreadsheetId: mainSheetID,
         range: 'participantLog!B6:B'
@@ -254,7 +254,7 @@ async function updateStepProgress(prolificId, stepValue) {
     const rows = response.data.values || [];
     const rowIndex = rows.findIndex(row => row[0] === prolificId);
     if (rowIndex === -1) {
-        console.log("prolificId not found. Adding to first empty line.");
+        //console.log("prolificId not found. Adding to first empty line.");
         rowIndex = rows.length;
         await googleSheets.spreadsheets.values.update({
             spreadsheetId: mainSheetID,
@@ -266,7 +266,7 @@ async function updateStepProgress(prolificId, stepValue) {
         });
     }
 
-    console.log("Fetching data for the identified row to find the next empty step.");
+    //console.log("Fetching data for the identified row to find the next empty step.");
     const stepRow = await googleSheets.spreadsheets.values.get({
         spreadsheetId: mainSheetID,
         range: `participantLog!A${rowIndex + 6}:${rowIndex + 6}`
@@ -275,12 +275,12 @@ async function updateStepProgress(prolificId, stepValue) {
     const headerRow = response.data.values[0] || [];
     const columnIndex = headerRow.findIndex(cell => cell === `Step ${stepValue}`);
     if (columnIndex === -1) {
-        console.log("Step 5: stepValue not found in header row. Exiting function.");
+        //console.log("Step 5: stepValue not found in header row. Exiting function.");
         return;
     }
 
     const datetime = new Date().toISOString();
-    console.log(`Step 6: Updating Google Sheet with datetime: ${datetime}`);
+    //console.log(`Step 6: Updating Google Sheet with datetime: ${datetime}`);
     await googleSheets.spreadsheets.values.update({
         spreadsheetId: mainSheetID,
         range: `participantLog!${String.fromCharCode(65 + columnIndex)}${rowIndex + 6}`,
@@ -290,7 +290,7 @@ async function updateStepProgress(prolificId, stepValue) {
         }
     });
 
-    console.log("Step 7: Update complete.");
+    //console.log("Step 7: Update complete.");
 }
 
 

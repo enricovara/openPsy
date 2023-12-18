@@ -1,6 +1,7 @@
 // setupGSO.js
 
 const { getAuthenticatedClient } = require('./00_googleSheetAuth');
+const { parseUserAgent } = require('../utils');
 
 const controlRoomTab = 'controlRoom!';
 const titleCell = 'B5'
@@ -14,7 +15,8 @@ const stepExitCellIdx = 5
 
 const participantLogTab = 'participantLog!';
 const PIDColumn = 'B'
-const firstStepColumn = 'C'
+const UserAgentColumn = 'C'
+const firstStepColumn = 'D'
 const stepNumRow = '4'
 
 
@@ -64,8 +66,8 @@ async function getBaseExpParams(mainSheetID, gSheetsAuthClient) {
             }
         });
         
-        console.log("\nIdentified experimental steps:")
-        console.log(stepsTypeDoCode)
+        //console.log("\nIdentified experimental steps:")
+        //console.log(stepsTypeDoCode)
     
         // Return the extracted data
         return {
@@ -86,11 +88,12 @@ async function getBaseExpParams(mainSheetID, gSheetsAuthClient) {
  *
  * @param {string} mainSheetID - The ID of the main sheet that contains experiment parameters.
  * @param {string} prolificID - The participant's Prolific ID.
+ * @param {string} userAgent - The User-Agent string from the request headers.
  * @param {Object} gSheetsAuthClient - the authenticated Google Sheets API client.
  *
  * @return {int} participantRowIndex - the user's row in the participantLog tab
  */
-async function loginParticipant(mainSheetID, prolificID, gSheetsAuthClient) {
+async function loginParticipant(mainSheetID, prolificID, userAgent, gSheetsAuthClient) {
     try {
         // Fetch participant's row index in participantLog
         const participantRowIndexResponse = await gSheetsAuthClient.spreadsheets.values.get({
@@ -99,23 +102,35 @@ async function loginParticipant(mainSheetID, prolificID, gSheetsAuthClient) {
         });
     
         let participantRowIndex = participantRowIndexResponse.data.values.findIndex(row => row[0] == prolificID);
-        // If Prolific ID not found, append it to the first empty row in participantLog (REGISTER)
+
         if (participantRowIndex === -1) {
+            // If Prolific ID not found, append it to the first empty row in participantLog (REGISTER)
             const lastRowIndex = participantRowIndexResponse.data.values.length;
-            // Append the new Prolific ID to column B
+            // Append the new Prolific ID and User-Agent to the participantLog
             await gSheetsAuthClient.spreadsheets.values.append({
                 spreadsheetId: mainSheetID,
                 range: `${participantLogTab}${PIDColumn}${lastRowIndex + 1}`,
                 valueInputOption: 'USER_ENTERED',
                 resource: {
-                    values: [[prolificID]]
+                    values: [[prolificID, userAgent]] // Append both prolificID and userAgent
                 }
             });
-            
-            // Set participantRowIndex to the new row index
+            // Update participantRowIndex to the new row index
             participantRowIndex = lastRowIndex;
+
+        } else {
+            // Replace the User-Agent in the participantLog
+            await gSheetsAuthClient.spreadsheets.values.update({
+                spreadsheetId: mainSheetID,
+                range: `${participantLogTab}${UserAgentColumn}${participantRowIndex + 1}`,
+                valueInputOption: 'USER_ENTERED',
+                resource: {
+                    values: [[userAgent]] // Write userAgent
+                }
+            });
         }
         
+        // Return the participant's row index
         return participantRowIndex;
 
     } catch (error) {
@@ -123,6 +138,7 @@ async function loginParticipant(mainSheetID, prolificID, gSheetsAuthClient) {
         throw error;
     }
 }
+
 
 
 
@@ -176,6 +192,50 @@ async function getStepStatus(mainSheetID, prolificID, baseExpParams, participant
 }
 
 
+/**
+ * Fetches language-specific strings from the "languageStrings" sheet tab.
+ *
+ * @param {string} mainSheetID - The ID of the main sheet.
+ * @param {string} language - The required language.
+ * @param {Object} gSheetsAuthClient - The authenticated Google Sheets API client.
+ * @return {Object} An object containing key-value pairs of strings in the specified language.
+ */
+async function getLanguageStrings(mainSheetID, language, gSheetsAuthClient) {
+    try {
+        // Fetch the entire 'languageStrings' sheet
+        const response = await gSheetsAuthClient.spreadsheets.values.get({
+            spreadsheetId: mainSheetID,
+            range: 'languageStrings'
+        });
+
+        const rows = response.data.values;
+        if (!rows || rows.length === 0) {
+            throw new Error('No data found in languageStrings sheet.');
+        }
+
+        // Find the language column index
+        const firstRow = rows[0];
+        const languageColIndex = firstRow.indexOf(language);
+        if (languageColIndex === -1) {
+            throw new Error(`Language '${language}' not found in languageStrings sheet.`);
+        }
+
+        const languageStrings = {};
+        // Start from row 2 to skip the header
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            const key = row[0]; // The name of the string is in column A
+            const value = row[languageColIndex]; // The value in the specified language
+            languageStrings[key] = value;
+        }
+
+        return languageStrings;
+
+    } catch (error) {
+        console.error('Error fetching language strings:', error);
+        throw error;
+    }
+}
 
 /**
  * 01 FETCH
@@ -189,10 +249,12 @@ async function getStepStatus(mainSheetID, prolificID, baseExpParams, participant
  *
  * @param {string} mainSheetID - The ID of the main sheet that contains experiment parameters.
  * @param {string} prolificID - The participant's Prolific ID.
+ * @param {string} language - The required language.
  * @return {Object} An object containing the experiment title, the general prolific error code, 
- *                  and dictionaries mapping step numbers to types, do?s, prolificCodes and status.
+ *                  and dictionaries mapping step numbers to types, do?s, prolificCodes and status;
+ *                  and an language STR internationalisation structured list of strings.
  */
-async function doSetupAndLogin(mainSheetID, prolificID) {
+async function doSetupAndLogin(mainSheetID, prolificID, userAgent, language) {
 
     try {
         const gSheetsAuthClient = await getAuthenticatedClient();
@@ -209,7 +271,8 @@ async function doSetupAndLogin(mainSheetID, prolificID) {
                 // .completionCode
     
         // LOG IN OR REGISTER PARTICIPANT in participantLog
-        const participantRowIndex = await loginParticipant(mainSheetID, prolificID, gSheetsAuthClient);
+        const userAgentReadable = parseUserAgent(userAgent);
+        const participantRowIndex = await loginParticipant(mainSheetID, prolificID, userAgentReadable, gSheetsAuthClient);
 
 
         // UPDATE baseExpParams.stepsParams FROM participantLog
@@ -221,11 +284,12 @@ async function doSetupAndLogin(mainSheetID, prolificID) {
                 // .type
                 // .toDo
                 // .completionCode
-                // .status        
+                // .status       
+                
+        const STR = await getLanguageStrings(mainSheetID, language, gSheetsAuthClient);
+
         
-        return {
-            expParams
-        };
+        return { expParams, STR };
 
     } catch (error) {
         console.error('Failure in fetching expParams:', error);

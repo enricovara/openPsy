@@ -35,7 +35,7 @@ async function generalNewLineUpdate(mainSheetID, sheetTab, version, prolificID, 
             rowData = [[prolificID, dateTime, ...rowDataList]];
         }
         
-        console.log(mainSheetID, sheetTab, prolificID, dateTime, rowData)
+        //console.log(mainSheetID, sheetTab, prolificID, dateTime, rowData)
 
         // Update the sheet by appending data to the bottom
         await googleSheets.spreadsheets.values.append({

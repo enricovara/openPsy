@@ -6,7 +6,7 @@ body {
     align-items: center;
     flex-direction: column;
     height: 100vh;
-    padding-bottom: 20px;  /* Add padding here */
+    padding-bottom: 50px;  /* Add padding here */
 
 }
 
@@ -24,6 +24,18 @@ body {
     justify-content: center; /* Center the button horizontally */
     margin-bottom: 20px; /* Add some margin to the bottom of the button's container */
 }
+
+
+.dynamic-button {
+    /* Add your button styles here */
+    padding: 10px 20px;
+    /*background-color: blue;*/
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
 
 /* LOGIN ******************************************************************* */
 #LOGIN_FORM {
@@ -96,6 +108,14 @@ body {
 footer.sticky-footer {
     margin-bottom: 20px; /* Margin below the footer */
     display: none;
+    position: fixed;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    background-color: #AAAAAA; /* Or any color of your choice */
+    color: white;
+    text-align: center;
+    padding: 10px 0; /* Adjust padding as needed */
 }
 .flexButtonContainer {
     display: flex;

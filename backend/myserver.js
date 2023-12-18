@@ -11,6 +11,8 @@ const { getMDtext, fetchQuestionsChoicesAnswer } = require('./googleSheetHelpers
 const { updateStepWithText, generalNewLineUpdate} = require('./googleSheetHelpers/10_writingGSO');
 const { fetchBlockParams, checkinOrConfirmBlock, clearOldCheckouts} = require('./googleSheetHelpers/03_simpleBlockGSO');
 
+const { parseUserAgent } = require('./utils');
+
 const app = express();
 
 app.use(express.json());
@@ -20,16 +22,18 @@ app.use(express.static(path.join(__dirname, '../frontend/public')));
 
 // SETUP //////////////////////////////////////////////////////////////////////
 
-// Endpoint for fetching base experiment parameters
+// Endpoint for fetching base experiment parameters and language strings
 app.post('/api/doSetupAndLogin', async (req, res) => {
     try {
-        const { mainSheetID, prolificID } = req.body; // Extract the mainSheetID from the request body
-        const expParams = await doSetupAndLogin(mainSheetID, prolificID);
-        res.json(expParams);
+        const { mainSheetID, prolificID, language } = req.body; // Extract mainSheetID, prolificID, and language from the request body
+        const userAgent = req.headers['user-agent'];
+        const result = await doSetupAndLogin(mainSheetID, prolificID, userAgent, language); // result contains expParams and STR
+        res.json(result); // Send expParams and STR
     } catch (error) {
-        res.status(500).json({ message: 'Could not fetch base experiment parameters', error });
+        res.status(500).json({ message: 'Could not fetch experiment parameters and language strings', error });
     }
 });
+
 
 
 // INFOCONSENT ////////////////////////////////////////////////////////////////
@@ -73,10 +77,10 @@ app.post('/api/generalNewLineUpdate', async (req, res) => {
     try {
         const { mainSheetID, sheetTab, version, prolificID, dateTime, rowDataList } = req.body; // Extract the parameters from the request body
         // note: listOfStrToSave can be an array of strings or an array of string arrays to be saved
-        console.log(req.body)
-        console.log(mainSheetID, sheetTab, version, prolificID, dateTime, rowDataList)
+        //console.log(req.body)
+        //console.log(mainSheetID, sheetTab, version, prolificID, dateTime, rowDataList)
         await generalNewLineUpdate(mainSheetID, sheetTab, version, prolificID, dateTime, rowDataList);
-        res.status(200).json({ message: 'Step updated successfully' });
+        res.status(200).json({ message: 'Data saved successfully' });
     } catch (error) {
         res.status(500).json({ message: 'Could not update step with text', error: error.message });
     }
@@ -124,7 +128,7 @@ app.post('/api/checkinOrConfirmBlock', async (req, res) => {
     }
 });
 
-// Endpoint for checking in a block
+// Endpoint for clearing out old checked-in blocks
 app.get('/api/clearOldCheckouts', async (req, res) => {
     try {
         const mainSheetID = req.query.mainSheetID; // Extract the mainSheetID from the query parameters
@@ -137,6 +141,30 @@ app.get('/api/clearOldCheckouts', async (req, res) => {
     }
 });
 
+
+// ERROR LOGGING ///////////////////////////////////////////////////////////
+
+app.post('/api/logError', (req, res) => {
+    const errorData = req.body;
+    const userAgent = req.headers['user-agent'];
+    const userAgentReadable = parseUserAgent(userAgent); // Ensure this function returns the expected format
+
+    const logObject = {
+        message: errorData.error,
+        stack: errorData.stack,
+        timestamp: errorData.timestamp,
+        PID: errorData.PID, // Participant ID from frontend
+        EXP: errorData.EXP, // Experiment parameter from frontend
+        step: errorData.step,
+        browserInfo: userAgentReadable, // Parsed user agent information
+        source: errorData.source
+    };
+
+    const introStr = errorData.source === 'frontend' ? 'Frontend Error:' : 'Error reported:';
+    console.error(`${introStr} ${JSON.stringify(logObject, null, 2)}`);
+
+    res.status(200).send('Error logged');
+});
 
 
 

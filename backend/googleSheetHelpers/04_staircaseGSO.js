@@ -1,4 +1,4 @@
-// 03_simpleBlockGSO.js
+// 04_staircaseGSO.js
 
 const { getAuthenticatedClient, getAuthenticatedDriveClient } = require('./00_googleSheetAuth');
 

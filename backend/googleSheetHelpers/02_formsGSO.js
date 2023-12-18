@@ -32,7 +32,7 @@ async function getMDtext(mainSheetID, tabName) {
         // Use try-catch to handle any potential errors from marked.parse
         try {
             htmlContent = marked.parse(markdownText);
-            console.log("Markdown converted to HTML.");
+            //console.log("Markdown converted to HTML.");
         } catch (parseError) {
             console.error("Error converting markdown to HTML:", parseError);
             return; // Exit the function or handle the error as needed
@@ -124,9 +124,9 @@ async function fetchQuestionsChoicesAnswer(mainSheetID, formName) {
                     answer: answer
                 });
 
-                console.log(`Question: ${question}`);
-                console.log(`Choices: ${choices}`);
-                console.log(`Answer: ${answer}`);
+                //console.log(`Question: ${question}`);
+                //console.log(`Choices: ${choices}`);
+                //console.log(`Answer: ${answer}`);
             }
         });
 

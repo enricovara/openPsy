@@ -21,6 +21,7 @@ async function respMCQ(questionsAndAnswers) {
                     const answerButton = createDynButton(answer, parentElement = responseContainer, style = {fontSize: '1.5em', margin: '10px', visibility: 'hidden'}, attributes = {})
 
                     answerButton.onclick = () => {
+                        clearTimeout(autoSubmitTimeout);
                         const reactionTime = new Date().getTime() - startTime;
                         responses.push({ answer: answer, reactionTime: reactionTime });
                         resolveNextQuestion(); // Function to move to the next question
@@ -36,19 +37,34 @@ async function respMCQ(questionsAndAnswers) {
                     });
                     startTime = new Date().getTime();
                 }, 0); // Timeout set to 0 to allow the rendering cycle to complete
+
+                // Auto-submit timeout setup
+                let autoSubmitTimeout = setTimeout(() => {
+                    responses.push({ answer: "TIMED_OUT", reactionTime: 30000 });
+                    resolveNextQuestion();
+                }, 30000); // 30 seconds
+
             } else {
                 const textField = document.createElement('input');
+                textField.style.width = '600px';  // Set the width as needed
                 textField.type = 'text';
                 responseContainer.appendChild(textField);
                 const submitButton = createDynButton(window.STR.submitButtonText, parentElement = responseContainer, style = {fontSize: '1.5em', margin: '10px'}, attributes = {disabled: 'true'})
+                toggleButtonMCQ(textField, submitButton); // Toggle submit button based on text field content
 
                 // Add event listener to the text field
                 textField.addEventListener('input', () => {
-                    // Toggle submit button based on text field content
-                    submitButton.disabled = textField.value.trim() === '';
+                    toggleButtonMCQ(textField, submitButton); // Toggle submit button based on text field content
                 });
 
+                // Auto-submit timeout setup
+                let autoSubmitTimeout = setTimeout(() => {
+                    responses.push({ answer: textField.value || "", reactionTime: 30000 });
+                    resolveNextQuestion();
+                }, 30000); // 30 seconds
+
                 submitButton.onclick = () => {
+                    clearTimeout(autoSubmitTimeout);
                     const reactionTime = new Date().getTime() - startTime;
                     responses.push({ answer: textField.value, time: reactionTime });
                     resolveNextQuestion(); // Function to move to the next question
@@ -75,4 +91,29 @@ async function respMCQ(questionsAndAnswers) {
         console.log(`   Redirecting user with error code`);
         await redirectHandler(`Error ${window.step.number}.2.1`, `${window.STR.pleaseEmailErrorCode}<br>${error}`, window.prolificCheckpointCode, allowRetry=true);
     }
+}
+
+
+/**
+ * Toggles the enabled state of a specified button based on the answers to questions.
+ * The function iterates through the provided questions and answers, checking if the
+ * conditions specified by the toggle logic are met. If all conditions are satisfied,
+ * the button is enabled; otherwise, it is disabled.
+ *
+ * @param {Object[]} textField
+ * @param {HTMLElement} button - The button element to be toggled.
+ */
+async function toggleButtonMCQ(textField, button) {
+
+    button.disabled = textField.value.trim() === '';
+    if (button.disabled) {
+        button.style.backgroundColor = 'gray';
+        button.style.color = 'lightgray';
+        button.style.cursor = 'default';
+    } else {
+        button.style.backgroundColor = 'blue'; // original color
+        button.style.color = 'white'; // original text color
+        button.style.cursor = 'pointer'; // original cursor
+    }
+
 }

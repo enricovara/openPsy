@@ -1,6 +1,9 @@
 const { google } = require('googleapis');
 const path = require('path');
 
+const { fancylog } = require('../utils');
+
+
 
 async function getAuthenticatedClient() {
 
@@ -13,7 +16,7 @@ async function getAuthenticatedClient() {
         const client = await auth.getClient();
         return google.sheets({ version: 'v4', auth: client });
     } catch (error) {
-        console.error('Error during authentication:', error);
+        fancylog.error('Error during authentication:', error);
         throw error; // Rethrow the error to handle it in your route.
     }
 }
@@ -30,7 +33,7 @@ async function getAuthenticatedDriveClient() {
         const client = await auth.getClient();
         return google.drive({ version: 'v3', auth: client });
     } catch (error) {
-        console.error('Error during authentication:', error);
+        fancylog.error('Error during authentication:', error);
         throw error; // Rethrow the error to handle it in your application.
     }
 }

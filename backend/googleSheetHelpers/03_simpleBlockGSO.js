@@ -2,6 +2,7 @@
 
 const { getAuthenticatedClient, getAuthenticatedDriveClient } = require('./00_googleSheetAuth');
 
+const { parseUserAgent, fancylog } = require('../utils');
 
 /**
  * Fetches block parameters from the 'simpleBlock' tab of the main sheet.
@@ -20,7 +21,7 @@ async function fetchBlockParams(mainSheetID, prolificID, version) {
     
     const sheetTab = `simpleBlock${version ? version : ''}!`;
     
-    //console.log(sheetTab)
+    fancylog.log(sheetTab)
 
     const RANGES = [
         `${sheetTab}D2`,                    // PRESENTATION_LOGIC_RANGE
@@ -35,7 +36,7 @@ async function fetchBlockParams(mainSheetID, prolificID, version) {
         `${sheetTab}B${FIRST_DATA_ROW}:B`   // BLOCK_NAMES_RANGE
     ];
     
-    //console.log(RANGES)
+    fancylog.log(RANGES)
 
     try {
         // Fetch all data with a single batchGet call
@@ -45,7 +46,7 @@ async function fetchBlockParams(mainSheetID, prolificID, version) {
         });
 
         const sheetData = response.data.valueRanges;
-        //console.log(`sheetData: ${JSON.stringify(sheetData, null, 2)}`);
+        fancylog.log(`sheetData: ${JSON.stringify(sheetData, null, 2)}`);
 
 
         // Extract data from responses
@@ -55,8 +56,8 @@ async function fetchBlockParams(mainSheetID, prolificID, version) {
         const messageAfterBlock = sheetData[3]?.values[0][0] ?? undefined;        
         const randomiseTrialsWithinBlock = sheetData[4]?.values[0][0] ?? undefined;        
         
-        //console.log(`presentationLogic: ${presentationLogic}`);
-        //console.log(`blocksN: ${blocksN}`);
+        fancylog.log(`presentationLogic: ${presentationLogic}`);
+        fancylog.log(`blocksN: ${blocksN}`);
         
         // Check presentation logic
         if (presentationLogic !== "Each block is presented to N participant(s) only") {
@@ -76,16 +77,16 @@ async function fetchBlockParams(mainSheetID, prolificID, version) {
         
         const questionsPresentationLogic = sheetData[6].values[0][0];
 
-        //console.log(`Questions and Answers: ${JSON.stringify(questionsAndAnswers, null, 2)}`);
-        //console.log(`Questions presentation logic: ${questionsPresentationLogic}`);
+        fancylog.log(`Questions and Answers: ${JSON.stringify(questionsAndAnswers, null, 2)}`);
+        fancylog.log(`Questions presentation logic: ${questionsPresentationLogic}`);
 
         const completedBlocksList = sheetData[7].values;
         const blockMediaAddressList = sheetData[8].values;
         const blockNamesList = sheetData[9].values;
         
-        //console.log("completedBlocksList", completedBlocksList)
-        //console.log(blockMediaAddressList)
-        //console.log(blockNamesList)
+        fancylog.log("completedBlocksList", completedBlocksList)
+        fancylog.log(blockMediaAddressList)
+        fancylog.log(blockNamesList)
         
         let minNonEmpty = blocksN;
         let selectedIndex = -1;
@@ -93,7 +94,7 @@ async function fetchBlockParams(mainSheetID, prolificID, version) {
             if (!blockMediaAddressList[i] || (Array.isArray(blockMediaAddressList[i]) && blockMediaAddressList[i].length === 0)) {
                 continue; // Skip if no media address is available for this row
             }
-            //console.log(blockMediaAddressList[i])
+            fancylog.log(blockMediaAddressList[i])
             if (!completedBlocksList || !completedBlocksList[i]) {
                 // If there's no corresponding entry in completedBlocksList, it's equivalent to 0 completed blocks
                 selectedIndex = i;
@@ -105,7 +106,7 @@ async function fetchBlockParams(mainSheetID, prolificID, version) {
             }
         }
         
-        //console.log("selectedIndex", selectedIndex)
+        fancylog.log("selectedIndex", selectedIndex)
         
         let blockMediaAddress = null;
         let blockName = null;
@@ -123,19 +124,22 @@ async function fetchBlockParams(mainSheetID, prolificID, version) {
             reservedCell = `${convertToColumnName(firstEmptyColumnIndex)}${FIRST_DATA_ROW + selectedIndex}`;
         }
 
-        //console.log(`blockMediaAddress: ${blockMediaAddress}`);
-        //console.log(`blockName: ${blockName}`);
-        //console.log(`reservedCell: ${reservedCell}`);
+        fancylog.log(`blockMediaAddress: ${blockMediaAddress}`);
+        fancylog.log(`blockName: ${blockName}`);
+        fancylog.log(`reservedCell: ${reservedCell}`);
 
         let driveFolderContents = null;
         if (blockMediaAddress) {
             driveFolderContents = await fetchDriveFolderContents(blockMediaAddress);
             // Randomise if needed
             if (['yes', 'y'].includes(randomiseTrialsWithinBlock.toLowerCase())) {
-                //console.log("Randomising Trials", randomiseTrialsWithinBlock)
+                fancylog.log("Randomising Trials", randomiseTrialsWithinBlock)
                 const fileMapArray = Object.entries(driveFolderContents); // Convert the object into an array of [key, value] pairs
                 const shuffledFileMapArray = shuffleArray(fileMapArray); // Shuffle the array of key-value pairs
-                driveFolderContents = Object.fromEntries(shuffledFileMapArray); // Convert back to object
+                driveFolderContents = shuffledFileMapArray.reduce((acc, [key, value]) => {
+                    acc[key] = value;
+                    return acc;
+                }, {});
             }
             await checkoutBlock(mainSheetID, sheetTab, reservedCell, prolificID);
         }
@@ -155,7 +159,7 @@ async function fetchBlockParams(mainSheetID, prolificID, version) {
         };
         
     } catch (error) {
-        console.error("Error fetching block parameters from Google Sheets:", error);
+        fancylog.error("Error fetching block parameters from Google Sheets:", error);
         throw error; // Rethrow the error to be handled by the caller.
     }
 }
@@ -206,7 +210,7 @@ async function checkoutBlock(mainSheetID, sheetTab, reservedCell, prolificID) {
         await googleSheets.spreadsheets.values.update(checkOutRequest);
     
     } catch (error) {
-        console.error("Error posting to sheet:", error);
+        fancylog.error("Error posting to sheet:", error);
         throw error; // Rethrow the error to be handled by the caller.
     }
 }
@@ -243,7 +247,7 @@ async function checkinOrConfirmBlock(mainSheetID, version, prolificID, reservedC
 
     
     } catch (error) {
-        console.error("Error posting to sheet:", error);
+        fancylog.error("Error posting to sheet:", error);
         throw error; // Rethrow the error to be handled by the caller.
     }
 }
@@ -259,7 +263,7 @@ async function clearOldCheckouts(mainSheetID, version) {
     try {
         const googleSheets = await getAuthenticatedClient();
         
-        //console.log("resetting old checked out blocks")
+        fancylog.log("resetting old checked out blocks")
         
         const FIRST_DATA_COLUMN_INDEX = 4; //D
         const FIRST_DATA_ROW = 14;
@@ -276,7 +280,7 @@ async function clearOldCheckouts(mainSheetID, version) {
         const data = response.data.values;
 
         if (!data) {
-            console.error("No data found in clearOldCheckouts query.");
+            fancylog.error("No data found in clearOldCheckouts query.");
             return;
         }
 
@@ -286,15 +290,15 @@ async function clearOldCheckouts(mainSheetID, version) {
         // Iterate through the data to find and prepare cells to clear
         data.forEach((row, rowIndex) => {
             row.forEach((cell, colIndex) => {
-                //console.log(cell)
+                fancylog.log(cell)
                 const parts = cell.split(" ");
                 for (let i = 0; i < parts.length; i++) {
-                    //console.log("   ", parts[i] + " " + parts[i + 1])
+                    fancylog.log("   ", parts[i] + " " + parts[i + 1])
                     // Check for datetime pattern and avoid splitting it
                     if (i < parts.length - 1 && isDateTime(parts[i] + " " + parts[i + 1])) {
                         const dateTime = convertToDateTime(parts[i] + " " + parts[i + 1]);
-                        //console.log("   ", "   ", dateTime)
-                        //console.log("   ", "   ", now)
+                        fancylog.log("   ", "   ", dateTime)
+                        fancylog.log("   ", "   ", now)
                         if (isMoreThanOneHourOld(dateTime, now)) {
                             const cellAddress = `${convertToColumnName(colIndex + FIRST_DATA_COLUMN_INDEX)}${rowIndex + FIRST_DATA_ROW}`;
                             clearRequests.push({
@@ -308,7 +312,7 @@ async function clearOldCheckouts(mainSheetID, version) {
             });
         });
         
-        //console.log(clearRequests)
+        fancylog.log(clearRequests)
         
 
         // Make a batch update if there are cells to clear
@@ -323,7 +327,7 @@ async function clearOldCheckouts(mainSheetID, version) {
             await googleSheets.spreadsheets.values.batchUpdate(batchClearRequest);
         }
     } catch (error) {
-        console.error("Error updating sheet:", error);
+        fancylog.error("Error updating sheet:", error);
         throw error;
     }
 }
@@ -381,7 +385,7 @@ async function fetchDriveFolderContents(folderUrl) {
     // Extract folder ID from the URL
     const folderId = folderUrl.split('/').pop();
     
-    //console.log(folderId)
+    fancylog.log(folderId)
 
     try {
         // List all files in the folder
@@ -398,12 +402,15 @@ async function fetchDriveFolderContents(folderUrl) {
         files.forEach(file => {
             // Construct the direct download link
             const downloadLink = `https://drive.google.com/uc?export=download&id=${file.id}`;
-            fileMap[file.name] = downloadLink;
+            fileMap[file.name] = {
+                downloadLink: downloadLink,
+                fileId: file.id
+            };        
         });
 
         return fileMap;
     } catch (error) {
-        console.error("Error fetching contents from Google Drive folder:", error);
+        fancylog.error("Error fetching contents from Google Drive folder:", error);
         throw error; // Rethrow the error to be handled by the caller.
     }
 }

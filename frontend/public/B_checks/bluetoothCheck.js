@@ -119,10 +119,14 @@ async function performBluetoothAudioCheck() {
 
         let BTcheckOK = true;
 
-        // Requesting permission to access audio input to get device labels
-        await navigator.mediaDevices.getUserMedia({ audio: true });
-    
-        let audioDevices = await navigator.mediaDevices.enumerateDevices();
+        // Requesting permission to access audio input to get device labels    
+        async function getAudioDevices() {
+            await navigator.mediaDevices.getUserMedia({ audio: true });
+            let audioDevices = await navigator.mediaDevices.enumerateDevices();
+            return audioDevices;
+        }
+
+        let audioDevices = await getAudioDevices();
     
         // Filter for only audio output devices and check for Bluetooth keyword
         const audioOutputDevices = audioDevices.filter(device => device.kind === 'audiooutput');

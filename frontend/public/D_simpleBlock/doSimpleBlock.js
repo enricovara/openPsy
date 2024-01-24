@@ -36,11 +36,11 @@ async function doSimpleBlock() {
 
     blockContainer.remove();
 
-    await showInitialMessageAndAwaitUserAction(blockParams.messageBeforeBlock);
+    await showMessageAndAwaitUserAction(blockParams.messageBeforeBlock);
 
     await executeTrials(blockParams, blockResponses);
 
-    await presentEndOfBlockOptions(blockParams);
+    await presentEndOfBlockOptions(blockParams.messageAfterBlock);
 }
 
 
@@ -60,7 +60,10 @@ async function executeTrials(blockParams, blockResponses) {
     let trialNumber = 0;
     for (const fileName in blockParams.driveFolderContents) {
 
-        const trialResponse = await playMediaAndCaptureResponse(blockParams, fileName, trialsContainer);
+        const fileUrl = blockParams.driveFolderContents[fileName].downloadLink; // This is the drive download link (fails in frontend without third party cookies)
+        const fileId = blockParams.driveFolderContents[fileName].fileId; // This is the file ID
+
+        const trialResponse = await playMediaAndCaptureResponse(blockParams, fileName, fileId, fileUrl, trialsContainer);
         blockResponses[trialNumber++] = { fileName, blockName: blockParams.blockName, trialResponse };
         
         await updateProgressBar(

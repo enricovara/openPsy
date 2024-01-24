@@ -50,35 +50,7 @@ async function doInstrBreak() {
     let okInstructions = new Promise((resolve) => {
         okUnderstoodButton.addEventListener('click', async () => {
 
-            okUnderstoodButton.disabled = true;
-            okUnderstoodButton.style.marginBottom = "100px";
-            okUnderstoodButton.style.backgroundColor = 'gray';
-            okUnderstoodButton.style.color = 'lightgray';
-            okUnderstoodButton.style.cursor = 'default';
-            instructionsContainer.style.scrollBehavior = 'smooth';
-            instructionsContainer.scrollTop = instructionsContainer.scrollHeight;
-
-            let myProgressBar2 = createDynProgressBar(
-                {}, // style // No additional styles
-                instructionsFooter, // parentElement // Appending to the loginContainer
-                false // showValue // Not showing the progress value
-            );
-            updateProgressBar(
-                myProgressBar2, // progressBar
-                90, // value
-                5, // duration
-                false, // removeOnComplete
-            );
-
-            await updateParticipantLog();
-
-            await updateProgressBar(
-                myProgressBar2, // progressBar
-                100, // value
-                0.1, // duration
-                true, // removeOnComplete
-                350 // removeDelay
-            );
+            updateParticipantLog();
 
             instructionsContainer.remove();
 

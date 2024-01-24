@@ -53,6 +53,15 @@ async function getBaseExpParams() {
         console.log(`   Redirecting user with error code`);
         await redirectHandler(`Error 0.0.1`, `Please communicate this error code to the experimenter`, window.prolificErrorCode, allowRetry=true);
     }
+
+    // error logging test
+    // try {
+    //     if (window.expParams.mainSheetID === "18h4-JZh6e8L3F1X-1BhLPGrG5qIVd3Q1JudyXZUDFlM") {
+    //         hello
+    //     }
+    // } catch (error) {
+    //     await reportErrorToServer(error);
+    // }
     
     // GET window.expParams
         // .title

@@ -6,12 +6,14 @@ const path = require('path');
 const express = require('express');
 const {google} = require('googleapis');
 
+const { getAuthenticatedDriveClient } = require('./googleSheetHelpers/00_googleSheetAuth');
 const { doSetupAndLogin } = require('./googleSheetHelpers/01_setupGSO');
 const { getMDtext, fetchQuestionsChoicesAnswer } = require('./googleSheetHelpers/02_formsGSO');
-const { updateStepWithText, generalNewLineUpdate} = require('./googleSheetHelpers/10_writingGSO');
 const { fetchBlockParams, checkinOrConfirmBlock, clearOldCheckouts} = require('./googleSheetHelpers/03_simpleBlockGSO');
+const { fetchStaircaseParams } = require('./googleSheetHelpers/04_staircaseGSO');
+const { updateStepWithText, generalNewLineUpdate} = require('./googleSheetHelpers/10_writingGSO');
 
-const { parseUserAgent } = require('./utils');
+const { parseUserAgent, fancylog } = require('./utils');
 
 const app = express();
 
@@ -141,30 +143,166 @@ app.get('/api/clearOldCheckouts', async (req, res) => {
     }
 });
 
+// STAIRCASE ////////////////////////////////////////////////////////////////
+
+// Endpoint for fetching staircase parameters and media links
+app.get('/api/staircaseBlock', async (req, res) => {
+    try {
+        const mainSheetID = req.query.mainSheetID; // Extract the mainSheetID from the query parameters
+        const version = req.query.version; // Extract the block version from the query parameters
+
+        // Fetch block parameters and drive folder contents
+        const staircaseParams = await fetchStaircaseParams(mainSheetID, version);
+
+        res.json(staircaseParams); // Respond with all block parameters and drive folder contents
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching staircase parameters and media links', error: error.message });
+    }
+});
+
 
 // ERROR LOGGING ///////////////////////////////////////////////////////////
 
 app.post('/api/logError', (req, res) => {
     const errorData = req.body;
     const userAgent = req.headers['user-agent'];
-    const userAgentReadable = parseUserAgent(userAgent); // Ensure this function returns the expected format
+    const userAgentReadable = parseUserAgent(userAgent); // Assume this function returns the expected format
 
+    // Combine the error data with the user agent info
     const logObject = {
-        message: errorData.error,
-        stack: errorData.stack,
-        timestamp: errorData.timestamp,
-        PID: errorData.PID, // Participant ID from frontend
-        EXP: errorData.EXP, // Experiment parameter from frontend
-        step: errorData.step,
-        browserInfo: userAgentReadable, // Parsed user agent information
-        source: errorData.source
+        ...errorData,
+        browserInfo: userAgentReadable
     };
 
-    const introStr = errorData.source === 'frontend' ? 'Frontend Error:' : 'Error reported:';
-    console.error(`${introStr} ${JSON.stringify(logObject, null, 2)}`);
+    // Log using fancylog.error
+    fancylog.error(logObject);
 
     res.status(200).send('Error logged');
 });
+
+
+
+// PLAYBACK SERVER-SIDE /////////////////////////////////////////////////////
+// TO AVOID THIRD PARTY COOKIES IN GDRIVE DOWNLOAD
+
+// this version doesn't work for wav files in safari
+app.get('/drive-file-old/:fileId', async (req, res) => {
+    try {
+        const fileId = req.params.fileId;
+        const drive = await getAuthenticatedDriveClient();
+
+        const response = await drive.files.get({
+            fileId: fileId,
+            alt: 'media'
+        }, {
+            responseType: 'stream'
+        });
+
+        response.data.pipe(res); // Stream the file data directly to the client
+    } catch (error) {
+        res.status(500).json({ message: 'Could not stream stimulus file', error: error.message });
+    }
+});
+
+// this is the fix: https://chat.openai.com/c/092a14ae-b41b-454a-aa9c-f3a2c8f121ea
+app.get('/drive-file/:fileId', async (req, res) => {
+    try {
+        const fileId = req.params.fileId;
+        const drive = await getAuthenticatedDriveClient();
+
+        // Fetch file metadata for size and mimeType
+        const fileMetadata = await drive.files.get({
+            fileId: fileId,
+            fields: 'size, mimeType'
+        });
+
+        const fileSize = fileMetadata.data.size;
+        const mimeType = fileMetadata.data.mimeType;
+
+        // Handle Range header if present
+        const range = req.headers.range;
+        let start, end;
+        if (range) {
+            const parts = range.replace(/bytes=/, "").split("-");
+            start = parseInt(parts[0], 10);
+            end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+            res.status(206); // Partial content
+        } else {
+            start = 0;
+            end = fileSize - 1;
+            res.status(200); // OK
+        }
+
+        // Set appropriate headers
+        res.setHeader('Content-Range', `bytes ${start}-${end}/${fileSize}`);
+        res.setHeader('Content-Length', end - start + 1);
+        res.setHeader('Content-Type', mimeType);
+
+        // Request the file with range if specified
+        const response = await drive.files.get({
+            fileId: fileId,
+            alt: 'media',
+            headers: range ? { Range: `bytes=${start}-${end}` } : {}
+        }, {
+            responseType: 'stream'
+        });
+
+        // Handle the streaming
+        response.data
+            .on('end', () => {
+                console.log('Finished streaming file.');
+                res.end();
+            })
+            .on('error', err => {
+                console.error('Error during streaming:', err);
+                res.status(500).send(err.toString());
+            })
+            .on('data', chunk => {
+                if (!res.write(chunk)) {
+                    response.data.pause();
+                }
+            });
+
+        res.on('drain', () => {
+            response.data.resume();
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: 'Could not stream file', error: error.message });
+    }
+});
+
+
+
+
+
+
+app.get('/random-file-from-folder/:folderID', async (req, res) => {
+    try {
+        const folderID = req.params.folderID;
+        const drive = await getAuthenticatedDriveClient();
+
+        // List files in the folder
+        const fileListResponse = await drive.files.list({
+            q: `'${folderID}' in parents`,
+            fields: 'files(id, name)'
+        });
+
+        const files = fileListResponse.data.files;
+        if (!files.length) {
+            return res.status(404).json({ message: 'No files found in folder' });
+        }
+
+        // Select a random file
+        const randomFile = files[Math.floor(Math.random() * files.length)];
+
+        // Return the file ID and name
+        res.json({ fileId: randomFile.id, fileName: randomFile.name });
+    } catch (error) {
+        res.status(500).json({ message: 'Error retrieving file from folder', error: error.message });
+    }
+});
+
 
 
 

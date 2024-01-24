@@ -94,7 +94,7 @@ async function reportErrorToServer(error) {
             source: 'frontend',
             PID: window.participant.prolificID,
             EXP: window.expParams.mainSheetID,
-            step: window.step.number,
+            step: window.step?.number ? window.step.number : null,
         };
 
         await fetch('/api/logError', {

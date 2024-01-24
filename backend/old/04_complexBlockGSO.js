@@ -2,6 +2,7 @@
 
 const { getAuthenticatedClient, getAuthenticatedDriveClient } = require('./00_googleSheetAuth');
 
+const { parseUserAgent, fancylog } = require('../utils');
 
 /**
  * Fetches block parameters from the 'simpleBlock' tab of the main sheet.
@@ -28,7 +29,7 @@ async function fetchBlockParams(mainSheetID, prolificID) {
         `simpleBlock!C${FIRST_DATA_ROW}:B` // BLOCK_NAMES_RANGE
     ];
     
-    //console.log(RANGES)
+    fancylog.log(RANGES)
 
     try {
         // Fetch all data with a single batchGet call
@@ -38,7 +39,7 @@ async function fetchBlockParams(mainSheetID, prolificID) {
         });
 
         const sheetData = response.data.valueRanges;
-        //console.log(`sheetData: ${JSON.stringify(sheetData, null, 2)}`);
+        fancylog.log(`sheetData: ${JSON.stringify(sheetData, null, 2)}`);
 
 
         // Extract data from responses
@@ -47,8 +48,8 @@ async function fetchBlockParams(mainSheetID, prolificID) {
         const messageBetweenBlocks = sheetData[3].values[0][0];
         const messageAfterLastBlock = sheetData[4].values[0][0];
         
-        //console.log(`presentationLogic: ${presentationLogic}`);
-        //console.log(`blocksN: ${blocksN}`);
+        fancylog.log(`presentationLogic: ${presentationLogic}`);
+        fancylog.log(`blocksN: ${blocksN}`);
         
         // Fetching and processing the questions and answers
         const questionsData = sheetData[5].values;
@@ -61,7 +62,7 @@ async function fetchBlockParams(mainSheetID, prolificID) {
             return acc;
         }, []);
 
-        //console.log(`Questions and Answers: ${JSON.stringify(questionsAndAnswers, null, 2)}`);
+        fancylog.log(`Questions and Answers: ${JSON.stringify(questionsAndAnswers, null, 2)}`);
     
 
         // Check presentation logic
@@ -76,15 +77,15 @@ async function fetchBlockParams(mainSheetID, prolificID) {
             return acc;
         }, {});
         
-        //console.log(`blockList: ${JSON.stringify(blockList, null, 2)}`);
+        fancylog.log(`blockList: ${JSON.stringify(blockList, null, 2)}`);
 
 
         // Find block media address and block cell range
         const completedBlocksList = sheetData[6].values;
         const blockMediaAddressList = sheetData[7].values;
         const blockNamesList = sheetData[8].values;
-        //console.log(`completedBlocksList: ${JSON.stringify(completedBlocksList, null, 2)}`); // in the test case I get a list of 2 elements
-        //console.log(`blockMediaAddressList: [redacted because too long]`); // in the test case I get a list of 1000 elements
+        fancylog.log(`completedBlocksList: ${JSON.stringify(completedBlocksList, null, 2)}`); // in the test case I get a list of 2 elements
+        fancylog.log(`blockMediaAddressList: [redacted because too long]`); // in the test case I get a list of 1000 elements
         let blockMediaAddress, blockCellRow;
         const firstEmptyIndex = completedBlocksList.findIndex(row => !row[0]);
         const targetIndex = firstEmptyIndex !== -1 ? firstEmptyIndex : completedBlocksList.length;
@@ -93,9 +94,9 @@ async function fetchBlockParams(mainSheetID, prolificID) {
         blockCellRow = (FIRST_DATA_ROW + targetIndex).toString();
 
         
-        //console.log(`blockMediaAddress: ${blockMediaAddress}`);
-        //console.log(`blockName: ${blockName}`);
-        //console.log(`blockCellRow: ${blockCellRow}`);
+        fancylog.log(`blockMediaAddress: ${blockMediaAddress}`);
+        fancylog.log(`blockName: ${blockName}`);
+        fancylog.log(`blockCellRow: ${blockCellRow}`);
         
         if (!blockMediaAddress) {
             throw new Error("Block media address not found");
@@ -104,12 +105,12 @@ async function fetchBlockParams(mainSheetID, prolificID) {
         // Calculate nthBlockParticipant
         const nthBlockParticipant = completedBlocksList.filter(row => row[0] === prolificID).length + 1;
 
-        //console.log(`nthBlockParticipant: ${nthBlockParticipant}`);
+        fancylog.log(`nthBlockParticipant: ${nthBlockParticipant}`);
 
         // Fetches the contents of the Google Drive folder and returns a map of file names and direct download links.
         const driveFolderContents = await fetchDriveFolderContents(blockMediaAddress);
         
-        //console.log(`driveFolderContents: ${JSON.stringify(driveFolderContents, null, 2)}`); // in the test case I get a list of 2 elements
+        fancylog.log(`driveFolderContents: ${JSON.stringify(driveFolderContents, null, 2)}`); // in the test case I get a list of 2 elements
 
         // CHECKOUT block
         await checkoutBlock(mainSheetID, blockCellRow, prolificID);
@@ -129,7 +130,7 @@ async function fetchBlockParams(mainSheetID, prolificID) {
         };
         
     } catch (error) {
-        console.error("Error fetching block parameters from Google Sheets:", error);
+        fancylog.error("Error fetching block parameters from Google Sheets:", error);
         throw error; // Rethrow the error to be handled by the caller.
     }
 }
@@ -157,7 +158,7 @@ async function checkoutBlock(mainSheetID, blockCellRow, prolificID) {
         await googleSheets.spreadsheets.values.update(checkOutRequest);
     
     } catch (error) {
-        console.error("Error posting to sheet:", error);
+        fancylog.error("Error posting to sheet:", error);
         throw error; // Rethrow the error to be handled by the caller.
     }
 }
@@ -192,7 +193,7 @@ async function checkinOrConfirmBlock(mainSheetID, blockCellRow, actionType) {
 
     
     } catch (error) {
-        console.error("Error posting to sheet:", error);
+        fancylog.error("Error posting to sheet:", error);
         throw error; // Rethrow the error to be handled by the caller.
     }
 }
@@ -231,7 +232,7 @@ async function fetchDriveFolderContents(folderUrl) {
 
         return fileMap;
     } catch (error) {
-        console.error("Error fetching contents from Google Drive folder:", error);
+        fancylog.error("Error fetching contents from Google Drive folder:", error);
         throw error; // Rethrow the error to be handled by the caller.
     }
 }

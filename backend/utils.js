@@ -22,4 +22,60 @@ function parseUserAgent(userAgentString) {
     return `${browserInfo}\n${osInfo}\n${deviceInfo}`;
 }
 
-module.exports = { parseUserAgent };
+
+
+
+const { Logging } = require('@google-cloud/logging');
+const logging = process.env.NODE_ENV === 'production' ? new Logging() : null;
+const log = logging ? logging.log('my-log') : null;
+
+const fancylog = {
+    log: (...args) => {
+        const entry = createLogEntry(args);
+        if (process.env.NODE_ENV === 'production') {
+            return // skipping logging on info-level logs in production env
+            log.info(entry);
+        } else {
+            console.log('[INFO]', entry.data);
+        }
+    },
+    error: (...args) => {
+        const entry = createLogEntry(args);
+        if (process.env.NODE_ENV === 'production') {
+            log.error(entry);
+        } else {
+            console.error('[ERROR]', entry.data);
+        }
+    }
+};
+
+function createLogEntry(args) {
+    const metadata = { resource: { type: 'global' } };
+    const logData = args.map(arg => {
+      if (arg instanceof Error) {
+        return `Error: ${arg.message}, Stack: ${arg.stack}`;
+      } else {
+        return JSON.stringify(arg);
+      }
+    });
+  
+    const simpleLogData = logData.join(', ');
+    return log ? log.entry(metadata, simpleLogData) : { data: simpleLogData };
+  }
+  
+
+// function createLogEntry(args) {
+//     const metadata = { resource: { type: 'global' } };
+//     const logData = args.map(arg => {
+//         if (arg instanceof Error) {
+//             return { message: arg.message, stack: arg.stack };
+//         } else {
+//             return arg;
+//         }
+//     });
+
+//     return log ? log.entry(metadata, logData) : { data: logData };
+// }
+
+
+module.exports = { parseUserAgent, fancylog };

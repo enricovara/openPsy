@@ -40,7 +40,7 @@ async function fetchBlockParams() {
 }
 
 
-async function showInitialMessageAndAwaitUserAction(messageBeforeBlock) {
+async function showMessageAndAwaitUserAction(messageBeforeBlock) {
 
     let initialMessageContainer = createDynContainer('initialMessageContainer', null, style = {justifyContent: 'center',});
 
@@ -67,14 +67,13 @@ async function showInitialMessageAndAwaitUserAction(messageBeforeBlock) {
 
 
 
-async function playMediaAndCaptureResponse(blockParams, fileName, trialsContainer) {
-    var fileUrl = blockParams.driveFolderContents[fileName];
+async function playMediaAndCaptureResponse(blockParams, fileName, fileId, fileUrl, trialsContainer) {
 
     if (blockParams.questionsPresentationLogic === "STIMULUS, Q1, STIMULUS, Q2, ..."){
         trialResponse = [];
         for (const qa of blockParams.questionsAndAnswers) {
             console.log("   ", qa)
-            const playSuccess = await playStim(fileUrl, fileName, trialsContainer); // Capture return value
+            const playSuccess = await playStim(fileUrl, fileId, fileName, trialsContainer);
             if (!playSuccess) {
                 trialResponse.push({outcome: "error", latency: 0}); // Record default outcome on failure
                 continue; // Skip to next iteration
@@ -83,7 +82,7 @@ async function playMediaAndCaptureResponse(blockParams, fileName, trialsContaine
             trialResponse.push(...response); // Spread operator to flatten responses
         }
     } else if (blockParams.questionsPresentationLogic === "STIMULUS, Q1, Q2, ..."){
-        const playSuccess = await playStim(fileUrl, fileName, trialsContainer);
+        const playSuccess = await playStim(fileUrl, fileId, fileName, trialsContainer);
         if (!playSuccess) {
             trialResponse = blockParams.questionsAndAnswers.map(() => ({outcome: "error", latency: 0})); // Create an error response for each question
         } else {
@@ -102,28 +101,32 @@ async function playMediaAndCaptureResponse(blockParams, fileName, trialsContaine
 
 }
 
-async function playStim(fileUrl, fileName, mediaContainer) {
+async function playStim(fileUrl, fileId, fileName, mediaContainer) {
     let retryCount = 0;
     const maxRetries = 3; // Maximum number of retries
 
     while (retryCount < maxRetries) {
+        let mediaElement = null;
         try {
             console.log(`Attempting to play ${fileName}, attempt ${retryCount + 1}`);
             const isVideo = fileName.endsWith('.mp4');
-            const isAudio = fileName.endsWith('.wav');
-            let mediaElement;
+            const isAudio = fileName.endsWith('.wav') || fileName.endsWith('.mp3');
 
             const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
             if (isVideo || isAudio) {
-                // Simulate playback error
-                // let a = Math.random();
-                // console.log(a)
-                // if (a < 0.98) throw new Error('Simulated playback error');
                 mediaElement = isVideo ? document.createElement('video') : document.createElement('audio');
                 mediaElement.preload = 'auto'; // Set preload to auto
-                mediaElement.src = fileUrl;
+                // mediaElement.src = fileUrl; // only works with 3rd party cookies activated
+                mediaElement.src = `/drive-file/${fileId}`;
                 mediaContainer.appendChild(mediaElement); // Add new media
+
+                // Simulate playback error
+                // if (Math.random() < 0.95) {
+                //     throw new Error("This is a randomly generated error");
+                // } else {
+                //     console.log("Randomly passed!");
+                // }             
 
                 if (mediaElement.readyState < mediaElement.HAVE_FUTURE_DATA) {
                     console.log('Starting to load media...');
@@ -135,13 +138,39 @@ async function playStim(fileUrl, fileName, mediaContainer) {
                 // Wait for media to be ready
                 await new Promise((resolve, reject) => {
                     mediaElement.oncanplaythrough = resolve;
-                    mediaElement.onerror = () => reject(new Error('Error loading media'));
+                    //mediaElement.onerror = () => reject(new Error('Error loading media'));
+                    mediaElement.onerror = () => {
+                        let errorMessage = 'Error loading media';
+                        if (mediaElement.error) {
+                            switch (mediaElement.error.code) {
+                                case mediaElement.error.MEDIA_ERR_ABORTED:
+                                    errorMessage += ': The fetching process for the media was aborted by the user agent at the users request.';
+                                    break;
+                                case mediaElement.error.MEDIA_ERR_NETWORK:
+                                    errorMessage += ': A network error caused the media download to fail.';
+                                    break;
+                                case mediaElement.error.MEDIA_ERR_DECODE:
+                                    errorMessage += ': An error occurred while decoding the media resource.';
+                                    break;
+                                case mediaElement.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                                    errorMessage += ': The media resource indicated by the src attribute or assigned media provider object was not suitable.';
+                                    break;
+                                default:
+                                    errorMessage += ': An unknown error occurred.';
+                                    break;
+                            }
+                        }
+                        reject(new Error(errorMessage));
+                    };
+                    
+
                 });
 
                 // Play media and wait for it to end
                 console.log(`...playing`);
                 await new Promise((resolve, reject) => {
                     mediaElement.onended = resolve;
+                    mediaElement.onwaiting = () => reject(new Error('Buffering detected, playback halted'));
                     mediaElement.play().then(() => console.log(`Playing ${fileName}`)).catch(reject);
                 });
                 console.log(`Finished playing ${fileName}`);
@@ -151,12 +180,8 @@ async function playStim(fileUrl, fileName, mediaContainer) {
                 } else {
                     console.log('outputLatency is not supported in this browser.');
                 }
-                if (audioCtx.baseLatency) {
-                    console.log(`Estimated base latency: ${audioCtx.baseLatency} seconds`);
-                } else {
-                    console.log('baseLatency is not supported in this browser.');
-                }
 
+                mediaElement?.remove();
                 return true; // Exit function after successful play
             } else {
                 throw new Error(`Unknown file type for file: ${fileName}`);
@@ -167,7 +192,6 @@ async function playStim(fileUrl, fileName, mediaContainer) {
             reportErrorToServer(error);
             console.log('Error in playStim function:', error);
             console.log(`   prolificID and mainSheetID:`, window.participant.prolificID, window.expParams.mainSheetID);
-            console.log(`   Redirecting user with error code`);
             if (retryCount >= maxRetries) {
                 console.log('Max retries reached, returning failure.');
                 return false; // Return false to indicate failure after all retries
@@ -241,13 +265,13 @@ async function checkinOrConfirmBlock(reservedCell, actionType) {
 }
 
 
-async function presentEndOfBlockOptions(blockParams) {
+async function presentEndOfBlockOptions(messageAfterBlock) {
 
     let endOfBlockContainer = createDynContainer('endOfBlockContainer', null, style = {justifyContent: 'center'});
 
     let endOfBlockFooter = createDynFooter(parentElement = endOfBlockContainer);
 
-    let messageObject = createDynTextElement(blockParams.messageAfterBlock, 'None', parentElement = endOfBlockContainer);
+    let messageObject = createDynTextElement(messageAfterBlock, 'None', parentElement = endOfBlockContainer);
 
     let buttonsContainer = createDynContainer('buttonsContainer', endOfBlockContainer, style = {display: 'flex', justifyContent: 'center', flexDirection: 'row', minHeight: 'auto'});
 

@@ -3,6 +3,8 @@
 const { getAuthenticatedClient } = require('./00_googleSheetAuth');
 const marked = require('marked');
 
+const { parseUserAgent, fancylog } = require('../utils');
+
 /**
  * Fetches data from tab named 'infoSheet' and converts it into Markdown format.
  * 
@@ -27,19 +29,19 @@ async function getMDtext(mainSheetID, tabName) {
                 markdownText += `## ${title}\n\n${content}\n\n`;
             }
         });
-        //console.log("Markdown text assembled:", markdownText);
+        fancylog.log("Markdown text assembled:", markdownText);
 
         // Use try-catch to handle any potential errors from marked.parse
         try {
             htmlContent = marked.parse(markdownText);
-            //console.log("Markdown converted to HTML.");
+            fancylog.log("Markdown converted to HTML.");
         } catch (parseError) {
-            console.error("Error converting markdown to HTML:", parseError);
+            fancylog.error("Error converting markdown to HTML:", parseError);
             return; // Exit the function or handle the error as needed
         }
         
     } catch (error) {
-        console.error("Error fetching data from Google Sheets:", error);
+        fancylog.error("Error fetching data from Google Sheets:", error);
         return; // Exit the function or handle the error as needed
     }
 
@@ -124,16 +126,16 @@ async function fetchQuestionsChoicesAnswer(mainSheetID, formName) {
                     answer: answer
                 });
 
-                //console.log(`Question: ${question}`);
-                //console.log(`Choices: ${choices}`);
-                //console.log(`Answer: ${answer}`);
+                fancylog.log(`Question: ${question}`);
+                fancylog.log(`Choices: ${choices}`);
+                fancylog.log(`Answer: ${answer}`);
             }
         });
 
         return formattedData;
 
     } catch (error) {
-        console.error("Error in fetchQuestionsChoicesAnswer function:", error);
+        fancylog.error("Error in fetchQuestionsChoicesAnswer function:", error);
         throw error;
     }
 }

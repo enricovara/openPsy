@@ -2,6 +2,8 @@
 
 const { getAuthenticatedClient } = require('./00_googleSheetAuth');
 
+const { parseUserAgent, fancylog } = require('../utils');
+
 const firstResultsRow = '3'
 const firstResultsColumn = 'B'
 
@@ -35,7 +37,7 @@ async function generalNewLineUpdate(mainSheetID, sheetTab, version, prolificID, 
             rowData = [[prolificID, dateTime, ...rowDataList]];
         }
         
-        //console.log(mainSheetID, sheetTab, prolificID, dateTime, rowData)
+        fancylog.log(mainSheetID, sheetTab, prolificID, dateTime, rowData)
 
         // Update the sheet by appending data to the bottom
         await googleSheets.spreadsheets.values.append({
@@ -46,7 +48,7 @@ async function generalNewLineUpdate(mainSheetID, sheetTab, version, prolificID, 
         });
 
     } catch (error) {
-        console.error('Error in generalNewLineUpdate:', error);
+        fancylog.error('Error in generalNewLineUpdate:', error);
         throw error;
     }
 }
@@ -106,7 +108,7 @@ async function updateStepWithText(mainSheetID, prolificID, stepNumber, inputText
         });
 
     } catch (error) {
-        console.error('Error updating step with text:', error);
+        fancylog.error('Error updating step with text:', error);
         throw error;
     }
 }

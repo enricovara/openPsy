@@ -2,40 +2,47 @@
 
 const { getAuthenticatedClient, getAuthenticatedDriveClient } = require('./00_googleSheetAuth');
 
+const { parseUserAgent, fancylog } = require('../utils');
+
 
 /**
- * Fetches block parameters from the 'simpleBlock' tab of the main sheet.
+ * Fetches block parameters from the 'staircaseBlock' tab of the main sheet.
  * 
  * @param {string} mainSheetID - The ID of the main Google Sheets spreadsheet.
  * @param {string} prolificID - The Prolific ID of the participant.
  * @returns {Promise<Object>} - An object containing block parameters.
  */
-async function fetchBlockParams(mainSheetID, prolificID, version) {
+async function fetchStaircaseParams(mainSheetID, prolificID, version) {
     const googleSheets = await getAuthenticatedClient();
     
-    const FIRST_DATA_ROW = 18;
+    const FIRST_DATA_ROW = 16;
     const FIRST_DATA_COLUMN_INDEX = 4; //D
     
     // Define constants for the hardcoded ranges
     
-    const sheetTab = `simpleBlock${version ? version : ''}!`;
+    const sheetTab = `staircaseBlock${version ? version : ''}!`;
     
-    //console.log(sheetTab)
+    fancylog.log(sheetTab)
 
     const RANGES = [
-        `${sheetTab}D2`,                    // PRESENTATION_LOGIC_RANGE
-        `${sheetTab}D3`,                    // BLOCKS_N_RANGE
-        `${sheetTab}D4`,                    // MESSAGE_BEFORE_BLOCK_RANGE
-        `${sheetTab}D5`,                    // MESSAGE_AFTER_BLOCK_RANGE
-        `${sheetTab}D7`,                    // RANDOMISE_WITHIN_BLOCKS_RANGE
-        `${sheetTab}D10:H13`,               // QUESTIONS_RANGE
-        `${sheetTab}D15`,                   // QUESTIONS_PRESENTATION_LOGIC
-        `${sheetTab}D${FIRST_DATA_ROW}:AA`, // COMPLETED_BLOCKS
+        `${sheetTab}B3:C3`,                 // StartValueRange
+        `${sheetTab}D3`,                    // StepCorrectRange
+        `${sheetTab}E3`,                    // StepIncorrectRange
+        `${sheetTab}F3`,                    // NumStaircasesRange
+        `${sheetTab}G3`,                    // NumStaircasesAveragedRange
+        `${sheetTab}H3`,                    // NumReversalsRange
+        `${sheetTab}I3`,                    // NumReversalsAveragedRange
+        `${sheetTab}K3`,                    // MediaTypeRange
+
+        `${sheetTab}D5`,                    // MESSAGE_BEFORE_BLOCK_RANGE
+        `${sheetTab}D6`,                    // MESSAGE_BETWEEN_STAIRS_RANGE
+        `${sheetTab}D7`,                    // MESSAGE_AFTER_BLOCK_RANGE
+
+        `${sheetTab}B${FIRST_DATA_ROW}:B`,  // VARIABLE RANGE
         `${sheetTab}C${FIRST_DATA_ROW}:C`,  // BLOCK_MEDIA_ADDRESS_RANGE
-        `${sheetTab}B${FIRST_DATA_ROW}:B`   // BLOCK_NAMES_RANGE
     ];
     
-    //console.log(RANGES)
+    fancylog.log(RANGES)
 
     try {
         // Fetch all data with a single batchGet call
@@ -45,117 +52,64 @@ async function fetchBlockParams(mainSheetID, prolificID, version) {
         });
 
         const sheetData = response.data.valueRanges;
-        //console.log(`sheetData: ${JSON.stringify(sheetData, null, 2)}`);
-
+        fancylog.log(`sheetData: ${JSON.stringify(sheetData, null, 2)}`)
 
         // Extract data from responses
-        const presentationLogic = sheetData[0].values[0][0];
-        const blocksN = sheetData[1].values[0][0];
-        const messageBeforeBlock = sheetData[2]?.values[0][0] ?? undefined;
-        const messageAfterBlock = sheetData[3]?.values[0][0] ?? undefined;        
-        const randomiseTrialsWithinBlock = sheetData[4]?.values[0][0] ?? undefined;        
-        
-        //console.log(`presentationLogic: ${presentationLogic}`);
-        //console.log(`blocksN: ${blocksN}`);
-        
-        // Check presentation logic
-        if (presentationLogic !== "Each block is presented to N participant(s) only") {
-            throw new Error("Invalid presentation logic");
-        }
-        
-        // Fetching and processing the questions and answers
-        const questionsData = sheetData[5].values;
-        const questionsAndAnswers = questionsData.reduce((acc, row) => {
-            const question = row[0];
-            if (question) { // Check if the question is not falsy
-                const answers = row.slice(1).filter(answer => answer); // Filter out falsy answers
-                acc.push({ question, answers });
-            }
-            return acc;
-        }, []);
-        
-        const questionsPresentationLogic = sheetData[6].values[0][0];
+        let startValueRange = sheetData[0].values[0].map(element => parseInt(element, 10));
+        const stepCorrect = parseInt(sheetData[1].values[0][0]);
+        const stepIncorrect = parseInt(sheetData[2].values[0][0]);
+        const numStairs = parseInt(sheetData[3].values[0][0]);
+        const numSaverage = parseInt(sheetData[4].values[0][0]); // num stairs to be averaged (e.g. if first is practice)
+        const numReversals = parseInt(sheetData[5].values[0][0]);
+        const numRaverage = parseInt(sheetData[6].values[0][0]); // num reversals to be averaged (e.g. if first is forgiven)
+        const mediaType = sheetData[7].values[0][0]; // "video" or "audio"
 
-        //console.log(`Questions and Answers: ${JSON.stringify(questionsAndAnswers, null, 2)}`);
-        //console.log(`Questions presentation logic: ${questionsPresentationLogic}`);
+        const messageBeforeBlock = sheetData[8]?.values[0][0] ?? undefined;
+        const messageBetweenStairs = sheetData[9]?.values[0][0] ?? undefined;
+        const messageAfterBlock = sheetData[10]?.values[0][0] ?? undefined;       
 
-        const completedBlocksList = sheetData[7].values;
-        const blockMediaAddressList = sheetData[8].values;
-        const blockNamesList = sheetData[9].values;
+        fancylog.log(`startValueRange: ${startValueRange}`)
+        fancylog.log(`stepCorrect, stepIncorrect: ${stepCorrect} ${stepIncorrect}`)
+        fancylog.log(`numStairs: ${numStairs}`)
+        fancylog.log(`numReversals, numRaverage: ${numReversals} ${numRaverage}`)
+
+        const variableList = sheetData[11].values;
+        const mediaAddressList = sheetData[12].values;
         
-        //console.log("completedBlocksList", completedBlocksList)
-        //console.log(blockMediaAddressList)
-        //console.log(blockNamesList)
-        
-        let minNonEmpty = blocksN;
-        let selectedIndex = -1;
-        for (let i = 0; i < blockMediaAddressList.length; i++) {
-            if (!blockMediaAddressList[i] || (Array.isArray(blockMediaAddressList[i]) && blockMediaAddressList[i].length === 0)) {
-                continue; // Skip if no media address is available for this row
-            }
-            //console.log(blockMediaAddressList[i])
-            if (!completedBlocksList || !completedBlocksList[i]) {
-                // If there's no corresponding entry in completedBlocksList, it's equivalent to 0 completed blocks
-                selectedIndex = i;
-                break;
-            } else if (completedBlocksList[i].length < minNonEmpty) {
-                minNonEmpty = completedBlocksList[i].length;
-                selectedIndex = i;
-                if (minNonEmpty === 0) break; // Optimization to stop when a row with 0 non-empty cells is found
+        fancylog.log("variableList", variableList)
+        fancylog.log("mediaAddressList", mediaAddressList)
+
+        let intIndexedFolderIDs = {};
+        let intIndexedFolderURLs = {};
+        for (let i = 0; i < variableList.length; i++) {
+            let key = parseInt(variableList[i], 10);
+            if (!isNaN(key) && mediaAddressList[i]) {
+                folderURL = mediaAddressList[i];
+                intIndexedFolderURLs[key] = folderURL;
+                fancylog.log(folderURL)
+                intIndexedFolderIDs[key] = folderURL[0].split('/').pop();
             }
         }
-        
-        //console.log("selectedIndex", selectedIndex)
-        
-        let blockMediaAddress = null;
-        let blockName = null;
-        let reservedCell = null;
-                    
-        if (selectedIndex !== -1) {
-            blockMediaAddress = blockMediaAddressList[selectedIndex] ? blockMediaAddressList[selectedIndex][0] : null;
-            blockName = blockNamesList[selectedIndex] ? blockNamesList[selectedIndex][0] : null;
-        
-            // Calculate the column for reservedCell
-            let firstEmptyColumnIndex = FIRST_DATA_COLUMN_INDEX;
-            if (completedBlocksList && completedBlocksList[selectedIndex]) {
-                firstEmptyColumnIndex += completedBlocksList[selectedIndex].length;
-            }
-            reservedCell = `${convertToColumnName(firstEmptyColumnIndex)}${FIRST_DATA_ROW + selectedIndex}`;
-        }
-
-        //console.log(`blockMediaAddress: ${blockMediaAddress}`);
-        //console.log(`blockName: ${blockName}`);
-        //console.log(`reservedCell: ${reservedCell}`);
-
-        let driveFolderContents = null;
-        if (blockMediaAddress) {
-            driveFolderContents = await fetchDriveFolderContents(blockMediaAddress);
-            // Randomise if needed
-            if (['yes', 'y'].includes(randomiseTrialsWithinBlock.toLowerCase())) {
-                //console.log("Randomising Trials", randomiseTrialsWithinBlock)
-                const fileMapArray = Object.entries(driveFolderContents); // Convert the object into an array of [key, value] pairs
-                const shuffledFileMapArray = shuffleArray(fileMapArray); // Shuffle the array of key-value pairs
-                driveFolderContents = Object.fromEntries(shuffledFileMapArray); // Convert back to object
-            }
-            await checkoutBlock(mainSheetID, sheetTab, reservedCell, prolificID);
-        }
-
 
         // Create the result object
         return {
-            blocksN,
+            startValueRange,
+            stepCorrect,
+            stepIncorrect,
+            numStairs,
+            numSaverage,
+            numReversals,
+            numRaverage,
+            mediaType,
             messageBeforeBlock,
+            messageBetweenStairs,
             messageAfterBlock,
-            questionsAndAnswers,
-            questionsPresentationLogic,
-            blockMediaAddress,
-            blockName,
-            reservedCell,
-            driveFolderContents
+            intIndexedFolderIDs,
+            intIndexedFolderURLs,
         };
         
     } catch (error) {
-        console.error("Error fetching block parameters from Google Sheets:", error);
+        fancylog.error("Error fetching staircase parameters from Google Sheets:", error);
         throw error; // Rethrow the error to be handled by the caller.
     }
 }
@@ -206,7 +160,7 @@ async function checkoutBlock(mainSheetID, sheetTab, reservedCell, prolificID) {
         await googleSheets.spreadsheets.values.update(checkOutRequest);
     
     } catch (error) {
-        console.error("Error posting to sheet:", error);
+        fancylog.error("Error posting to sheet:", error);
         throw error; // Rethrow the error to be handled by the caller.
     }
 }
@@ -243,7 +197,7 @@ async function checkinOrConfirmBlock(mainSheetID, version, prolificID, reservedC
 
     
     } catch (error) {
-        console.error("Error posting to sheet:", error);
+        fancylog.error("Error posting to sheet:", error);
         throw error; // Rethrow the error to be handled by the caller.
     }
 }
@@ -259,7 +213,7 @@ async function clearOldCheckouts(mainSheetID, version) {
     try {
         const googleSheets = await getAuthenticatedClient();
         
-        //console.log("resetting old checked out blocks")
+        fancylog.log("resetting old checked out blocks")
         
         const FIRST_DATA_COLUMN_INDEX = 4; //D
         const FIRST_DATA_ROW = 14;
@@ -276,7 +230,7 @@ async function clearOldCheckouts(mainSheetID, version) {
         const data = response.data.values;
 
         if (!data) {
-            console.error("No data found in clearOldCheckouts query.");
+            fancylog.error("No data found in clearOldCheckouts query.");
             return;
         }
 
@@ -286,15 +240,15 @@ async function clearOldCheckouts(mainSheetID, version) {
         // Iterate through the data to find and prepare cells to clear
         data.forEach((row, rowIndex) => {
             row.forEach((cell, colIndex) => {
-                //console.log(cell)
+                fancylog.log(cell)
                 const parts = cell.split(" ");
                 for (let i = 0; i < parts.length; i++) {
-                    //console.log("   ", parts[i] + " " + parts[i + 1])
+                    fancylog.log("   ", parts[i] + " " + parts[i + 1])
                     // Check for datetime pattern and avoid splitting it
                     if (i < parts.length - 1 && isDateTime(parts[i] + " " + parts[i + 1])) {
                         const dateTime = convertToDateTime(parts[i] + " " + parts[i + 1]);
-                        //console.log("   ", "   ", dateTime)
-                        //console.log("   ", "   ", now)
+                        fancylog.log("   ", "   ", dateTime)
+                        fancylog.log("   ", "   ", now)
                         if (isMoreThanOneHourOld(dateTime, now)) {
                             const cellAddress = `${convertToColumnName(colIndex + FIRST_DATA_COLUMN_INDEX)}${rowIndex + FIRST_DATA_ROW}`;
                             clearRequests.push({
@@ -308,7 +262,7 @@ async function clearOldCheckouts(mainSheetID, version) {
             });
         });
         
-        //console.log(clearRequests)
+        fancylog.log(clearRequests)
         
 
         // Make a batch update if there are cells to clear
@@ -323,7 +277,7 @@ async function clearOldCheckouts(mainSheetID, version) {
             await googleSheets.spreadsheets.values.batchUpdate(batchClearRequest);
         }
     } catch (error) {
-        console.error("Error updating sheet:", error);
+        fancylog.error("Error updating sheet:", error);
         throw error;
     }
 }
@@ -381,7 +335,7 @@ async function fetchDriveFolderContents(folderUrl) {
     // Extract folder ID from the URL
     const folderId = folderUrl.split('/').pop();
     
-    //console.log(folderId)
+    fancylog.log(folderId)
 
     try {
         // List all files in the folder
@@ -403,11 +357,11 @@ async function fetchDriveFolderContents(folderUrl) {
 
         return fileMap;
     } catch (error) {
-        console.error("Error fetching contents from Google Drive folder:", error);
+        fancylog.error("Error fetching contents from Google Drive folder:", error);
         throw error; // Rethrow the error to be handled by the caller.
     }
 }
 
 
 
-module.exports = { fetchBlockParams, checkinOrConfirmBlock, clearOldCheckouts};
+module.exports = { fetchStaircaseParams };

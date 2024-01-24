@@ -1,7 +1,7 @@
 // setupGSO.js
 
 const { getAuthenticatedClient } = require('./00_googleSheetAuth');
-const { parseUserAgent } = require('../utils');
+const { parseUserAgent, fancylog } = require('../utils');
 
 const controlRoomTab = 'controlRoom!';
 const titleCell = 'B5'
@@ -66,8 +66,8 @@ async function getBaseExpParams(mainSheetID, gSheetsAuthClient) {
             }
         });
         
-        //console.log("\nIdentified experimental steps:")
-        //console.log(stepsTypeDoCode)
+        fancylog.log("\nIdentified experimental steps:")
+        fancylog.log(stepsTypeDoCode)
     
         // Return the extracted data
         return {
@@ -77,7 +77,7 @@ async function getBaseExpParams(mainSheetID, gSheetsAuthClient) {
         };
     
     } catch (error) {
-        console.error('Could not get base experiment params:', error);
+        fancylog.error('Could not get base experiment params:', error);
         throw error;
     }
 }
@@ -134,7 +134,7 @@ async function loginParticipant(mainSheetID, prolificID, userAgent, gSheetsAuthC
         return participantRowIndex;
 
     } catch (error) {
-        console.error('Could not login participant:', error);
+        fancylog.error('Could not login participant:', error);
         throw error;
     }
 }
@@ -186,7 +186,7 @@ async function getStepStatus(mainSheetID, prolificID, baseExpParams, participant
         return baseExpParams;
 
     } catch (error) {
-        console.error('Could not update baseExpParams:', error);
+        fancylog.error('Could not update baseExpParams:', error);
         throw error;
     }
 }
@@ -232,7 +232,7 @@ async function getLanguageStrings(mainSheetID, language, gSheetsAuthClient) {
         return languageStrings;
 
     } catch (error) {
-        console.error('Error fetching language strings:', error);
+        fancylog.error('Error fetching language strings:', error);
         throw error;
     }
 }
@@ -292,7 +292,7 @@ async function doSetupAndLogin(mainSheetID, prolificID, userAgent, language) {
         return { expParams, STR };
 
     } catch (error) {
-        console.error('Failure in fetching expParams:', error);
+        fancylog.error('Failure in fetching expParams:', error);
         throw error;
     }
 }

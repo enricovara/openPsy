@@ -104,6 +104,9 @@ async function getBaseExpParams() {
         150 // removeDelay
     );    
     
+    let adBlockWarning = createDynTextElement(`${window.STR.adBlockWarning}`, 'Warning', parentElement = loginFooter, {margin: '20px'})
+    adBlockWarning.style.display = 'block';
+
     displayUsername.textContent = `${window.STR.yourParticipantIDis}: ${window.participant.prolificID}`, 'Body', loginContainer;
     title.textContent = window.expParams.title;
     title.style.display = 'block';

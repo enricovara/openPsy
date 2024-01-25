@@ -17,11 +17,13 @@ async function redirectHandler(headerText, bodyText, prolificExitCode = window.p
     // Create a new container dynamically
     let redirectContainer = createDynContainer('redirectContainer');
 
+    let redirectFooter = createDynFooter(parentElement = redirectContainer);
+
     // Add text to the container
     let headerElement = createDynTextElement(headerText, 'Header', redirectContainer, style = {paddingTop: "20vh"}); // Replace 'Body' with the appropriate text type
     let textElement = createDynTextElement(bodyText, 'Body', redirectContainer); // Replace 'Body' with the appropriate text type
 
-    let buttonsContainer = createDynContainer('redirectbuttonsContainer', redirectContainer, style = {display: 'flex', flexDirection: 'row', alignItems: 'start', justifyContent: 'start'});
+    let buttonsContainer = createDynContainer('redirectbuttonsContainer', redirectContainer, style = {display: 'flex', flexDirection: 'row', alignItems: 'start', justifyContent: 'start', minHeight: 'auto',});
 
     // Create the button
     let refreshAndRetryButton;
@@ -42,6 +44,9 @@ async function redirectHandler(headerText, bodyText, prolificExitCode = window.p
             await sleep(10000);
         });
     });
+
+    let adBlockWarning = createDynTextElement(`${window.STR.adBlockWarning}`, 'Warning', parentElement = redirectFooter, {margin: '20px'})
+    adBlockWarning.style.display = 'block';
 
 await exit;
 }

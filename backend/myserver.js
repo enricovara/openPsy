@@ -205,6 +205,8 @@ app.get('/drive-file-old/:fileId', async (req, res) => {
 });
 
 // this is the fix: https://chat.openai.com/c/092a14ae-b41b-454a-aa9c-f3a2c8f121ea
+// also, regarding clicks, buzzing and jitters: https://chat.openai.com/c/24f7fb05-e2e7-42a4-9c4b-4b1b81d5e1a6
+// and https://chat.openai.com/g/g-TzFyCtlOo-coding-buddy/c/b3e4d5b5-ad1b-4a5e-a5e9-adc1cd84be09
 app.get('/drive-file/:fileId', async (req, res) => {
     try {
         const fileId = req.params.fileId;

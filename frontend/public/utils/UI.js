@@ -116,6 +116,14 @@ function createDynTextElement(textContent, textType, parentElement = null, style
             marginBottom: '5px',
             textAlign: 'center'
         },
+        'Warning': {
+            fontSize: '18px',
+            //fontWeight: 'bold',
+            color: 'yellow',
+            marginBottom: '5px',
+            maxWidth: '1200px',
+            textAlign: 'center',
+        },
         'None': {
             //marginTop: '100px'
         }
@@ -284,7 +292,9 @@ function createDynFooter(parentElement = null, style = {}) {
         color: 'white', // Default text color
         textAlignment: 'center',
         padding: '10px 0',
-        fontSize: '14px'
+        fontSize: '14px',
+        display: 'flex',
+        justifyContent: 'center'
     };
 
     // Apply default styles and then override with provided styles

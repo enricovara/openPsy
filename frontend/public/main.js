@@ -93,7 +93,7 @@ window.addEventListener('load', async function () {
 
         if (parseInt(window.step.number, 10) === lastStepNumber) {
             console.log(`That's all folks`);
-            const bodyText = `${window.STR.experimentCompleted}.<br>${window.STR.clickToReturnToProlific}.<br>${window.STR.yourCompletionCodeIs} <strong>${window.step.completionCode}</strong>`;
+            const bodyText = `${window.STR.experimentCompleted}.<br>${window.STR.clickToReturnToProlific}.<br>${window.STR.yourCompletionCodeIs} <strong>${window.prolificCheckpointCode}</strong>`;
             await redirectHandler(window.STR.thankYou, bodyText, window.prolificCheckpointCode);
         }
     }

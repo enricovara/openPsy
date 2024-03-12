@@ -133,14 +133,24 @@ async function fetchBlockParams(mainSheetID, prolificID, version) {
             driveFolderContents = await fetchDriveFolderContents(blockMediaAddress);
             // Randomise if needed
             if (['yes', 'y'].includes(randomiseTrialsWithinBlock.toLowerCase())) {
-                fancylog.log("Randomising Trials", randomiseTrialsWithinBlock)
+                fancylog.log("Randomising Trials: randomiseTrialsWithinBlock = ", randomiseTrialsWithinBlock)
                 const fileMapArray = Object.entries(driveFolderContents); // Convert the object into an array of [key, value] pairs
                 const shuffledFileMapArray = shuffleArray(fileMapArray); // Shuffle the array of key-value pairs
                 driveFolderContents = shuffledFileMapArray.reduce((acc, [key, value]) => {
                     acc[key] = value;
                     return acc;
                 }, {});
+            } else {
+                fancylog.log("Arranging Alphabetically: randomiseTrialsWithinBlock = ", randomiseTrialsWithinBlock);
+                const fileMapArray = Object.entries(driveFolderContents); // Convert the object into an array of [key, value] pairs
+                // Sort the array of key-value pairs alphabetically based on keys
+                const sortedFileMapArray = fileMapArray.sort((a, b) => a[0].localeCompare(b[0]));
+                driveFolderContents = sortedFileMapArray.reduce((acc, [key, value]) => {
+                    acc[key] = value;
+                    return acc;
+                }, {});
             }
+            fancylog.log("Order of driveFolderContents after:", Object.keys(driveFolderContents).join(", "));
             await checkoutBlock(mainSheetID, sheetTab, reservedCell, prolificID);
         }
 
@@ -380,33 +390,39 @@ function isMoreThanOneHourOld(dateTime, now) {
  * @returns {Promise<Object>} - An object containing file names and their direct download links.
  */
 async function fetchDriveFolderContents(folderUrl) {
-    const drive = await getAuthenticatedDriveClient()
-
-    // Extract folder ID from the URL
+    const drive = await getAuthenticatedDriveClient();
     const folderId = folderUrl.split('/').pop();
+    fancylog.log(folderId);
     
-    fancylog.log(folderId)
-
     try {
-        // List all files in the folder
-        const response = await drive.files.list({
-            q: `'${folderId}' in parents`,
-            fields: 'files(id, name)',
-            orderBy: 'name'
-        });
-
-        // Process files to create a map of file names and download links
-        const files = response.data.files || [];
+        let pageToken = null;
         const fileMap = {};
 
-        files.forEach(file => {
-            // Construct the direct download link
-            const downloadLink = `https://drive.google.com/uc?export=download&id=${file.id}`;
-            fileMap[file.name] = {
-                downloadLink: downloadLink,
-                fileId: file.id
-            };        
-        });
+        do {
+            // List files in the folder with pagination
+            const response = await drive.files.list({
+                q: `'${folderId}' in parents`,
+                fields: 'nextPageToken, files(id, name)',
+                pageSize: 1000,
+                pageToken: pageToken,
+                orderBy: 'name'
+            });
+
+            // Process files to create a map of file names and download links, excluding .DS_Store or similar
+            const files = response.data.files || [];
+            files.forEach(file => {
+                // Skip .DS_Store or any other specific files you want to exclude
+                if (!file.name.endsWith('.DS_Store') && !file.name.endsWith('Thumbs.db') && !file.name.startsWith('.')) {
+                    const downloadLink = `https://drive.google.com/uc?export=download&id=${file.id}`;
+                    fileMap[file.name] = {
+                        downloadLink: downloadLink,
+                        fileId: file.id
+                    };
+                }
+            });
+
+            pageToken = response.data.nextPageToken;
+        } while (pageToken);
 
         return fileMap;
     } catch (error) {
@@ -414,6 +430,7 @@ async function fetchDriveFolderContents(folderUrl) {
         throw error; // Rethrow the error to be handled by the caller.
     }
 }
+
 
 
 

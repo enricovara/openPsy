@@ -103,7 +103,7 @@ async function playMediaAndCaptureResponse(blockParams, fileName, fileId, fileUr
 
 async function playStim(fileUrl, fileId, fileName, mediaContainer) {
     let retryCount = 0;
-    const maxRetries = 3; // Maximum number of retries
+    const maxRetries = 5; // Maximum number of retries
 
     while (retryCount < maxRetries) {
         let mediaElement = null;
@@ -126,17 +126,19 @@ async function playStim(fileUrl, fileId, fileName, mediaContainer) {
                 //     throw new Error("This is a randomly generated error");
                 // } else {
                 //     console.log("Randomly passed!");
-                // }             
+                // }        
+                
+                // Wrap media loading and playback in a promise with a timeout
+                const operationPromise = new Promise(async (resolve, reject) => {
 
-                if (mediaElement.readyState < mediaElement.HAVE_FUTURE_DATA) {
-                    console.log('Starting to load media...');
-                    mediaElement.load(); // Start loading the media
-                } else {
-                    console.log('Media is already loading or loaded.');
-                }
+                    if (mediaElement.readyState < mediaElement.HAVE_FUTURE_DATA) {
+                        console.log('Starting to load media...');
+                        mediaElement.load(); // Start loading the media
+                    } else {
+                        console.log('Media is already loading or loaded.');
+                    }
 
-                // Wait for media to be ready
-                await new Promise((resolve, reject) => {
+                    // Wait for media to be ready
                     mediaElement.oncanplaythrough = resolve;
                     //mediaElement.onerror = () => reject(new Error('Error loading media'));
                     mediaElement.onerror = () => {
@@ -165,6 +167,11 @@ async function playStim(fileUrl, fileId, fileName, mediaContainer) {
                     
 
                 });
+
+                // Set a timeout to reject the operation if it takes more than 3 seconds
+                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Operation timed out')), 3000));
+                // Use Promise.race to proceed with whichever promise resolves or rejects first
+                await Promise.race([operationPromise, timeoutPromise]);
 
                 // Play media and wait for it to end
                 console.log(`...playing`);

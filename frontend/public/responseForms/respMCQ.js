@@ -40,9 +40,9 @@ async function respMCQ(questionsAndAnswers) {
 
                 // Auto-submit timeout setup
                 let autoSubmitTimeout = setTimeout(() => {
-                    responses.push({ answer: "TIMED_OUT", reactionTime: 30000 });
+                    responses.push({ answer: "TIMED_OUT", reactionTime: 20000 });
                     resolveNextQuestion();
-                }, 30000); // 30 seconds
+                }, 20000); // 20 seconds
 
             } else {
                 const textField = document.createElement('input');
@@ -59,9 +59,20 @@ async function respMCQ(questionsAndAnswers) {
 
                 // Auto-submit timeout setup
                 let autoSubmitTimeout = setTimeout(() => {
-                    responses.push({ answer: textField.value || "", reactionTime: 30000 });
+                    responses.push({ answer: textField.value || "TIMED_OUT", reactionTime: 20000 });
                     resolveNextQuestion();
-                }, 30000); // 30 seconds
+                }, 20000); // 20 seconds
+
+                // Add keypress event listener to the text field for Enter key
+                textField.addEventListener('keypress', (event) => {
+                    if (event.key === "Enter" && textField.value.trim() !== '') {
+                        event.preventDefault(); // Prevent the default action
+                        clearTimeout(autoSubmitTimeout);
+                        const reactionTime = new Date().getTime() - startTime;
+                        responses.push({ answer: textField.value.trim(), time: reactionTime });
+                        resolveNextQuestion(); // Function to move to the next question
+                    }
+                });
 
                 submitButton.onclick = () => {
                     clearTimeout(autoSubmitTimeout);

@@ -1,23 +1,49 @@
 // staircaseUtils.js
 
+//const { fancylog } = require("../../../../backend/utils");
+
+function isValidJSON(str) {
+    try {
+        JSON.parse(str);
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
 
 async function fetchStaircaseParams() {
+    let data;
 
     try {
-        response = await fetch(`/api/staircaseBlock?mainSheetID=${window.expParams.mainSheetID}&version=${window.step.version ?? ''}`);
+        const response = await fetch(`/api/staircaseBlock?mainSheetID=${window.expParams.mainSheetID}&version=${window.step.version ?? ''}`);
+
         if (!response.ok) {
             throw new Error('Network response was not ok in staircaseUtils fetching /api/staircaseBlock');
         }
+
+        data = await response.json();
+        console.log('Staircase parameters: ', data);
+
     } catch (error) {
         console.error('Error:', error);
-        console.error(`There was a problem fetching block params`);
-        console.log(`   prolificID and mainSheetID:`, window.participant.prolificID, window.expParams.mainSheetID);
-        console.log(`   Redirecting user with error code`);
+        console.error('There was a problem fetching block params');
+        console.log('prolificID and mainSheetID:', window.participant.prolificID, window.expParams.mainSheetID);
+        console.log('Redirecting user with error code');
         reportErrorToServer(error);
-        await redirectHandler(`Error ${window.step.number}.2.1`, `${window.STR.pleaseEmailErrorCode}<br>${error}`, window.prolificCheckpointCode, allowRetry=true);
+        await redirectHandler(`Error ${window.step.number}.2.1`, `${window.STR.pleaseEmailErrorCode}<br>${error}`, window.prolificCheckpointCode, allowRetry = true);
     }
 
-    return await response.json();
+    return data;
+}
+
+// Helper function to validate JSON
+function isValidJSON(text) {
+    try {
+        JSON.parse(text);
+    
+    } catch (error) {
+        return false;
+    }
 }
 
 

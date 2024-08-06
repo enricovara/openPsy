@@ -15,34 +15,43 @@ const { parseUserAgent, fancylog } = require('../utils');
 async function fetchStaircaseParams(mainSheetID, prolificID, version) {
     const googleSheets = await getAuthenticatedClient();
     
-    const FIRST_DATA_ROW = 16;
+    const FIRST_DATA_ROW = 18;
     const FIRST_DATA_COLUMN_INDEX = 4; //D
     
     // Define constants for the hardcoded ranges
     
-    const sheetTab = `staircaseBlock${version ? version : ''}!`;
+    const sheetTab = `staircase${version ? version : ''}!`;
     
     fancylog.log(sheetTab)
 
     const RANGES = [
-        `${sheetTab}B3:C3`,                 // StartValueRange
-        `${sheetTab}D3`,                    // StepCorrectRange
-        `${sheetTab}E3`,                    // StepIncorrectRange
-        `${sheetTab}F3`,                    // NumStaircasesRange
-        `${sheetTab}G3`,                    // NumStaircasesAveragedRange
-        `${sheetTab}H3`,                    // NumReversalsRange
-        `${sheetTab}I3`,                    // NumReversalsAveragedRange
-        `${sheetTab}K3`,                    // MediaTypeRange
+        //`${sheetTab}B3:C3`,                 // StartValueRange
+        //`${sheetTab}D3`,                    // StepCorrectRange
+        `${sheetTab}D4`,                    // MESSAGE_BEFORE_BLOCK_RANGE
+        `${sheetTab}D5`,                    // MESSAGE_AFTER_BLOCK_RANGE
+        `${sheetTab}D6`,                    // Number of stairs
+        `${sheetTab}D11`,                   // Question
+        `${sheetTab}E11:F11`,               // Answers yes no, later GRID
+        
+        `${sheetTab}C19:C28`,  // BLOCK_MEDIA_ADDRESS_RANGE 
+        `${sheetTab}B19:B28`   // BLOCK_NAMES_RANGE block 1 - 10 
+        
+        //`${sheetTab}E3`,                    // StepIncorrectRange
+        //`${sheetTab}F3`,                    // NumStaircasesRange
+        //`${sheetTab}G3`,                    // NumStaircasesAveragedRange
+        //`${sheetTab}H3`,                    // NumReversalsRange
+        //`${sheetTab}I3`,                    // NumReversalsAveragedRange
+        //`${sheetTab}K3`,                    // MediaTypeRange
 
-        `${sheetTab}D5`,                    // MESSAGE_BEFORE_BLOCK_RANGE
-        `${sheetTab}D6`,                    // MESSAGE_BETWEEN_STAIRS_RANGE
-        `${sheetTab}D7`,                    // MESSAGE_AFTER_BLOCK_RANGE
+        //`${sheetTab}D5`,                    // MESSAGE_BEFORE_BLOCK_RANGE
+        //`${sheetTab}D6`,                    // MESSAGE_BETWEEN_STAIRS_RANGE
+        //`${sheetTab}D7`,                    // MESSAGE_AFTER_BLOCK_RANGE
 
-        `${sheetTab}B${FIRST_DATA_ROW}:B`,  // VARIABLE RANGE
-        `${sheetTab}C${FIRST_DATA_ROW}:C`,  // BLOCK_MEDIA_ADDRESS_RANGE
+       //`${sheetTab}B${FIRST_DATA_ROW}:B`,  // VARIABLE RANGE
+        //`${sheetTab}C${FIRST_DATA_ROW}:C`,  // BLOCK_MEDIA_ADDRESS_RANGE
     ];
     
-    fancylog.log(RANGES)
+    //fancylog.log(RANGES)
 
     try {
         // Fetch all data with a single batchGet call
@@ -50,49 +59,82 @@ async function fetchStaircaseParams(mainSheetID, prolificID, version) {
             spreadsheetId: mainSheetID,
             ranges: RANGES
         });
+        fancylog.log("Response:", response);
 
         const sheetData = response.data.valueRanges;
+
         fancylog.log(`sheetData: ${JSON.stringify(sheetData, null, 2)}`)
 
         // Extract data from responses
-        let startValueRange = sheetData[0].values[0].map(element => parseInt(element, 10));
-        const stepCorrect = parseInt(sheetData[1].values[0][0]);
-        const stepIncorrect = parseInt(sheetData[2].values[0][0]);
-        const numStairs = parseInt(sheetData[3].values[0][0]);
-        const numSaverage = parseInt(sheetData[4].values[0][0]); // num stairs to be averaged (e.g. if first is practice)
-        const numReversals = parseInt(sheetData[5].values[0][0]);
-        const numRaverage = parseInt(sheetData[6].values[0][0]); // num reversals to be averaged (e.g. if first is forgiven)
-        const mediaType = sheetData[7].values[0][0]; // "video" or "audio"
+        //et startValueRange = sheetData[0].values[0].map(element => parseInt(element, 10));
+        const numOfStairs = parseInt(sheetData[2].values[0]);
+        const question = sheetData[3].values[0];
+        const answers = sheetData[4].values[0];
+        const blockAdresses = sheetData[5].values;
+        const blockNumber = sheetData[6].values;
 
-        const messageBeforeBlock = sheetData[8]?.values[0][0] ?? undefined;
-        const messageBetweenStairs = sheetData[9]?.values[0][0] ?? undefined;
-        const messageAfterBlock = sheetData[10]?.values[0][0] ?? undefined;       
+        const messageBeforeBlock = sheetData[0]?.values[0][0] ?? undefined;
+        //const messageBetweenStairs = sheetData[1]?.values[0][0] ?? undefined;
+        const messageAfterBlock = sheetData[1]?.values[0][0] ?? undefined;       
 
-        fancylog.log(`startValueRange: ${startValueRange}`)
-        fancylog.log(`stepCorrect, stepIncorrect: ${stepCorrect} ${stepIncorrect}`)
-        fancylog.log(`numStairs: ${numStairs}`)
-        fancylog.log(`numReversals, numRaverage: ${numReversals} ${numRaverage}`)
 
-        const variableList = sheetData[11].values;
-        const mediaAddressList = sheetData[12].values;
+        fancylog.log(`numOfStars: ${numOfStairs}`)
+        fancylog.log(`question: ${question}`);
+        fancylog.log(`answers: ${answers}`);
+        fancylog.log(`adresses of blocks: ${blockAdresses}`);
+        fancylog.log(`number of blocks: ${blockNumber}`);
+
+        fancylog.log(`message before block: ${messageBeforeBlock}`);
+        fancylog.log(`message after block: ${messageAfterBlock}`);
+
+        //const stepCorrect = parseInt(sheetData[1].values[0][0]);
+        //const stepIncorrect = parseInt(sheetData[2].values[0][0]);
+        //const numStairs = parseInt(sheetData[3].values[0][0]);
+        //const numSaverage = parseInt(sheetData[4].values[0][0]); // num stairs to be averaged (e.g. if first is practice)
+        //const numReversals = parseInt(sheetData[5].values[0][0]);
+        //const numRaverage = parseInt(sheetData[6].values[0][0]); // num reversals to be averaged (e.g. if first is forgiven)
+        //const mediaType = sheetData[7].values[0][0]; // "video" or "audio"
+
+
+        //fancylog.log(`startValueRange: ${startValueRange}`)
+        //fancylog.log(`stepCorrect, stepIncorrect: ${stepCorrect} ${stepIncorrect}`)
+        //fancylog.log(`numStairs: ${numStairs}`)
+        //fancylog.log(`numReversals, numRaverage: ${numReversals} ${numRaverage}`)
+
+        //const variableList = sheetData[11].values;
+        //const mediaAddressList = sheetData[12].values;
         
-        fancylog.log("variableList", variableList)
-        fancylog.log("mediaAddressList", mediaAddressList)
+        //fancylog.log("variableList", variableList)
+        //fancylog.log("mediaAddressList", mediaAddressList)
 
-        let intIndexedFolderIDs = {};
-        let intIndexedFolderURLs = {};
-        for (let i = 0; i < variableList.length; i++) {
-            let key = parseInt(variableList[i], 10);
-            if (!isNaN(key) && mediaAddressList[i]) {
-                folderURL = mediaAddressList[i];
-                intIndexedFolderURLs[key] = folderURL;
-                fancylog.log(folderURL)
-                intIndexedFolderIDs[key] = folderURL[0].split('/').pop();
-            }
-        }
+        //let intIndexedFolderIDs = {};
+        //let intIndexedFolderURLs = {};
+        //for (let i = 0; i < variableList.length; i++) {
+        //    let key = parseInt(variableList[i], 10);
+        //    if (!isNaN(key) && mediaAddressList[i]) {
+        //        folderURL = mediaAddressList[i];
+        //        intIndexedFolderURLs[key] = folderURL;
+        //        fancylog.log(folderURL)
+        //        intIndexedFolderIDs[key] = folderURL[0].split('/').pop();
+        //    }
+        //}
 
         // Create the result object
-        return {
+        const result = {
+            numOfStairs,
+            question,
+            answers,
+            blockAdresses,
+            blockNumber,
+            messageBeforeBlock,
+            messageAfterBlock
+        };
+        fancylog.log(`result in staircaseGSO: ${JSON.stringify(result)}`);
+        return result;
+        //return result;
+
+        // Create the result object
+ /*        return {
             startValueRange,
             stepCorrect,
             stepIncorrect,
@@ -106,7 +148,7 @@ async function fetchStaircaseParams(mainSheetID, prolificID, version) {
             messageAfterBlock,
             intIndexedFolderIDs,
             intIndexedFolderURLs,
-        };
+        }; */
         
     } catch (error) {
         fancylog.error("Error fetching staircase parameters from Google Sheets:", error);

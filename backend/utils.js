@@ -18,7 +18,6 @@ function parseUserAgent(userAgentString) {
     const browserInfo = `Browser: ${result.browser.name} ${result.browser.version}`;
     const osInfo = `OS: ${result.os.name} ${result.os.version}`;
     const deviceInfo = result.device.model ? `Device: ${result.device.model}, ${result.device.type}, ${result.device.vendor}` : 'Device: N/A';
-
     return `${browserInfo}\n${osInfo}\n${deviceInfo}`;
 }
 

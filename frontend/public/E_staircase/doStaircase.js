@@ -1,6 +1,7 @@
 
 
 async function doStaircase() {
+    console.log("Executing staircaseBlock")
 
     let blockContainer = createDynContainer('blockContainer', null, style = {alignItems: 'start'});
 
@@ -22,6 +23,13 @@ async function doStaircase() {
     let staircaseParams;
 
     staircaseParams = await fetchStaircaseParams();
+    
+    console.log("in doStairCase(), after fetchStaircaseParams()", staircaseParams);
+    
+/*     if (!staircaseParams.driveFolderContents) {
+        const bodyText = `${window.STR.noBlocksAvailable}.<br>${window.STR.clickToReturnToProlific}.<br>${window.STR.yourCompletionCodeIs} <strong>${window.prolificCheckpointCode}</strong>`;
+        await redirectHandler(window.STR.thankYou, bodyText, window.prolificCheckpointCode);
+    } */
 
     await updateProgressBar(
         myProgressBar, // progressBar
@@ -32,16 +40,17 @@ async function doStaircase() {
     );
 
     blockContainer.remove();
-
+    console.log("before showMessage", staircaseParams.messageBeforeBlock);
     await showMessageAndAwaitUserAction(staircaseParams.messageBeforeBlock);
 
     let variableValues = [];    
-    for (let SCidx = 0; SCidx < staircaseParams.numStairs; SCidx++) {
-        variableValues[SCidx] = await executeStaircase(staircaseParams);
+    for (let i = 0; i < staircaseParams.numStairs; i++) {
+        console.log("in for loop, index", i);
+        variableValues[i] = await executeStaircase(staircaseParams);
         await showMessageAndAwaitUserAction(staircaseParams.messageBetweenStairs);
     }
 
-    let meanValue = Math.round(variableValues.slice(-staircaseParams.numSaverage).reduce((acc, val) => acc + val, 0) / N);
+    //let meanValue = Math.round(variableValues.slice(-staircaseParams.numSaverage).reduce((acc, val) => acc + val, 0) / N);
 
     updateParticipantLog();
     window.prolificCheckpointCode = window.step.completionCode;

@@ -255,7 +255,7 @@ async function getLanguageStrings(mainSheetID, language, gSheetsAuthClient) {
  *                  and an language STR internationalisation structured list of strings.
  */
 async function doSetupAndLogin(mainSheetID, prolificID, userAgent, language) {
-
+    console.log("setup GSO")
     try {
         const gSheetsAuthClient = await getAuthenticatedClient();
     
@@ -271,6 +271,7 @@ async function doSetupAndLogin(mainSheetID, prolificID, userAgent, language) {
                 // .completionCode
     
         // LOG IN OR REGISTER PARTICIPANT in participantLog
+
         const userAgentReadable = parseUserAgent(userAgent);
         const participantRowIndex = await loginParticipant(mainSheetID, prolificID, userAgentReadable, gSheetsAuthClient);
 
@@ -286,9 +287,7 @@ async function doSetupAndLogin(mainSheetID, prolificID, userAgent, language) {
                 // .completionCode
                 // .status       
                 
-        const STR = await getLanguageStrings(mainSheetID, language, gSheetsAuthClient);
-
-        
+        const STR = await getLanguageStrings(mainSheetID, language, gSheetsAuthClient);  
         return { expParams, STR };
 
     } catch (error) {
@@ -296,7 +295,6 @@ async function doSetupAndLogin(mainSheetID, prolificID, userAgent, language) {
         throw error;
     }
 }
-
 
 
 

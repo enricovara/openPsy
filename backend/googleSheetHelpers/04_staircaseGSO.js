@@ -30,7 +30,7 @@ async function fetchStaircaseParams(mainSheetID, prolificID, version) {
         `${sheetTab}D4`,                    // MESSAGE_BEFORE_BLOCK_RANGE
         `${sheetTab}D5`,                    // MESSAGE_AFTER_BLOCK_RANGE
         `${sheetTab}D6`,                    // Number of stairs
-        `${sheetTab}D11`,                   // Question
+        `${sheetTab}D11`,                   // MESSAGE_BETWEEN STAIRS
         `${sheetTab}E11:F11`,               // Answers yes no, later GRID
         
         `${sheetTab}C19:C28`,  // BLOCK_MEDIA_ADDRESS_RANGE 
@@ -74,7 +74,7 @@ async function fetchStaircaseParams(mainSheetID, prolificID, version) {
         const blockNumber = sheetData[6].values;
 
         const messageBeforeBlock = sheetData[0]?.values[0][0] ?? undefined;
-        //const messageBetweenStairs = sheetData[1]?.values[0][0] ?? undefined;
+        const messageBetweenStairs = sheetData[3]?.values[0][0] ?? undefined;
         const messageAfterBlock = sheetData[1]?.values[0][0] ?? undefined;       
 
 
@@ -85,6 +85,7 @@ async function fetchStaircaseParams(mainSheetID, prolificID, version) {
         fancylog.log(`number of blocks: ${blockNumber}`);
 
         fancylog.log(`message before block: ${messageBeforeBlock}`);
+        fancylog.log(`messages inbetween stairs: ${messageBetweenStairs}`);
         fancylog.log(`message after block: ${messageAfterBlock}`);
 
         //const stepCorrect = parseInt(sheetData[1].values[0][0]);
@@ -127,6 +128,7 @@ async function fetchStaircaseParams(mainSheetID, prolificID, version) {
             blockAdresses,
             blockNumber,
             messageBeforeBlock,
+            messageBetweenStairs,
             messageAfterBlock
         };
         fancylog.log(`result in staircaseGSO: ${JSON.stringify(result)}`);

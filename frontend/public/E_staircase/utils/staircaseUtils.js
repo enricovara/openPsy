@@ -47,8 +47,164 @@ function isValidJSON(text) {
 }
 
 
+async function playMediaAndGetOutcome (staircaseParams , fileUrl){
+    try{
+        let currentFolderID = fileUrl.split('/').pop();
+        console.log("in playMediaAndCaputreResponse: get currentfolderID: ", currentFolderID);
+        
+        console.log(`Picking a random file from ${fileUrl}`);
+    
+        const { fileId, fileName} = await getRandomFileFromFolder(currentFolderID);
+        console.log("after getRandomFileFromFolder");
 
-async function playMediaAndGetOutcome(staircaseParams, currentVal, trialsContainer) {
+        const playSuccess = await playAudio(fileUrl, fileId, fileName, trialsContainer);
+        console.log("after playSuccess");
+
+        if (playSuccess) {
+            //let endOfBlockContainer = createDynContainer('endOfBlockContainer', null, style = {justifyContent: 'center'});
+
+
+            const answerContainer = createDynContainer('answerContainer', null, style= {
+                marginBottom: '50px',
+                alignSelf: 'center', 
+                justifyContent: 'center',
+            });
+
+            staircaseParams.answers.forEach(answer => {
+                const button = document.createElement('button');
+                button.innerText = answer;
+                // Apply styles to the button
+                Object.assign(button.style, {
+                    marginBottom: '50px',
+                    alignSelf: 'center'
+                });                button.onclick = () => handleAnswerClick(answer);
+                answerContainer.appendChild(button);
+            });
+
+            // Wait for the participant to click an answer
+            const selectedAnswer = await waitForAnswer();
+            console.log('Selected Answer:', selectedAnswer);
+            
+            removeAnswerContainer('answerContainer');
+
+
+            // Perform any additional actions based on the selected answer
+            if (selectedAnswer=='YES'){
+                console.log("in if");
+                return true;
+            }
+            else{
+                console.log("in else");
+                return false;
+            }
+        }
+
+    }
+    catch (error) {
+        reportErrorToServer(error);
+        console.error('Error playing or recording outcome:', error);
+        console.log(`   prolificID and mainSheetID:`, window.participant.prolificID, window.expParams.mainSheetID);
+        console.log(`   Redirecting user with error code`);
+        await redirectHandler(`Error ${window.step.number}.2.2`, `${window.STR.pleaseEmailErrorCode}<br>${error}`, window.prolificCheckpointCode, allowRetry=true);
+    }
+}
+
+async function playAudio(fileUrl, fileId, fileName, mediaContainer) {
+    let retryCount = 0;
+    const maxRetries = 5; // Maximum number of retries
+    const timeoutDuration = 5000; // Increase timeout duration to 5 seconds
+
+    while (retryCount < maxRetries) {
+        let mediaElement = null;
+        try {
+            console.log(`Attempting to play ${fileName}, attempt ${retryCount + 1}`);
+            const isVideo = fileName.endsWith('.mp4');
+            const isAudio = fileName.endsWith('.wav') || fileName.endsWith('.mp3');
+
+            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+            if (isVideo || isAudio) {
+                mediaElement = isVideo ? document.createElement('video') : document.createElement('audio');
+                mediaElement.preload = 'auto'; // Set preload to auto
+                // mediaElement.src = fileUrl; // only works with 3rd party cookies activated
+                mediaElement.src = `/drive-file/${fileId}`;
+                mediaContainer.appendChild(mediaElement); // Add new media
+
+                // Wrap media loading and playback in a promise with a timeout
+                const operationPromise = new Promise((resolve, reject) => {
+                    mediaElement.oncanplaythrough = resolve;
+                    mediaElement.onerror = () => {
+                        let errorMessage = 'Error loading media';
+                        if (mediaElement.error) {
+                            switch (mediaElement.error.code) {
+                                case mediaElement.error.MEDIA_ERR_ABORTED:
+                                    errorMessage += ': The fetching process for the media was aborted by the user agent at the users request.';
+                                    break;
+                                case mediaElement.error.MEDIA_ERR_NETWORK:
+                                    errorMessage += ': A network error caused the media download to fail.';
+                                    break;
+                                case mediaElement.error.MEDIA_ERR_DECODE:
+                                    errorMessage += ': An error occurred while decoding the media resource.';
+                                    break;
+                                case mediaElement.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                                    errorMessage += ': The media resource indicated by the src attribute or assigned media provider object was not suitable.';
+                                    break;
+                                default:
+                                    errorMessage += ': An unknown error occurred.';
+                                    break;
+                            }
+                        }
+                        reject(new Error(errorMessage));
+                    };
+                    // Start loading the media
+                    if (mediaElement.readyState < mediaElement.HAVE_FUTURE_DATA) {
+                        console.log('Starting to load media...');
+                        mediaElement.load(); // Start loading the media
+                    } else {
+                        console.log('Media is already loading or loaded.');
+                    }
+                });
+
+                // Set a timeout to reject the operation if it takes more than 5 seconds
+                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Operation timed out')), timeoutDuration));
+                // Use Promise.race to proceed with whichever promise resolves or rejects first
+                await Promise.race([operationPromise, timeoutPromise]);
+
+                // Play media and wait for it to end
+                console.log(`...playing`);
+                await new Promise((resolve, reject) => {
+                    mediaElement.onended = resolve;
+                    mediaElement.onwaiting = () => reject(new Error('Buffering detected, playback halted'));
+                    mediaElement.play().then(() => console.log(`Playing ${fileName}`)).catch(reject);
+                });
+                console.log(`Finished playing ${fileName}`);
+
+                if (audioCtx.outputLatency) {
+                    console.log(`Estimated output latency: ${audioCtx.outputLatency} seconds`);
+                } else {
+                    console.log('outputLatency is not supported in this browser.');
+                }
+
+                mediaElement?.remove();
+                return true; // Exit function after successful play
+            } else {
+                throw new Error(`Unknown file type for file: ${fileName}`);
+            }
+        } catch (error) {
+            retryCount++;
+            mediaElement?.remove();
+            reportErrorToServer(error);
+            console.log('Error in playAudio function:', error);
+            console.log(`   prolificID and mainSheetID:`, window.participant.prolificID, window.expParams.mainSheetID);
+            if (retryCount >= maxRetries) {
+                console.log('Max retries reached, returning failure.');
+                return false; // Return false to indicate failure after all retries
+            }
+        }
+    }
+}
+
+/* async function playMediaAndGetOutcome(staircaseParams, currentVal, trialsContainer) {
 
     try {
 
@@ -79,7 +235,7 @@ async function playMediaAndGetOutcome(staircaseParams, currentVal, trialsContain
         await redirectHandler(`Error ${window.step.number}.2.2`, `${window.STR.pleaseEmailErrorCode}<br>${error}`, window.prolificCheckpointCode, allowRetry=true);
     }
 
-}
+} */
 
 
 async function getRandomFileFromFolder(folderId) {
@@ -107,7 +263,28 @@ async function getRandomFileFromFolder(folderId) {
         }
     }
 }
+function handleAnswerClick(answer) {
+    const event = new CustomEvent('answerSelected', { detail: answer });
+    document.dispatchEvent(event);
+}
 
+// Function to wait for an answer
+function waitForAnswer() {
+    return new Promise(resolve => {
+        document.addEventListener('answerSelected', function handler(event) {
+            document.removeEventListener('answerSelected', handler);
+            resolve(event.detail);
+        });
+    });
+}
+
+// Function to remove the answer container
+function removeAnswerContainer(containerID) {
+    const container = document.getElementById(containerID);
+    if (container) {
+        container.remove();
+    }
+}
 
 async function processAndSendAllStaircaseVals(sheetTab, blockName, blockResponses) {
   let allRowData = [];

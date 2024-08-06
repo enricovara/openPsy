@@ -40,25 +40,84 @@ async function doStaircase() {
     );
 
     blockContainer.remove();
-    console.log("before showMessage", staircaseParams.messageBeforeBlock);
-    await showMessageAndAwaitUserAction(staircaseParams.messageBeforeBlock);
 
-    let variableValues = [];    
-    for (let i = 0; i < staircaseParams.numStairs; i++) {
+    //Before Starting staircaseBlock, get confirmation from user
+    await showMessageAndAwaitUserAction(staircaseParams.messageBeforeBlock);
+    console.log("numStairs", staircaseParams.numOfStairs);
+
+    //we start with audio 1, block is updated if successfull response 
+    let block = 0;   
+    //numOfStairs: how many files are presented to each participant --> 10 files  
+    for (let i = 0; i < staircaseParams.numOfStairs; i++) {
         console.log("in for loop, index", i);
-        variableValues[i] = await executeStaircase(staircaseParams);
+        
+        var x = await executeStaircaseBlock (staircaseParams, block);
+        block = x;
+        //variableValues[i] = await executeStaircase(staircaseParams, i);
+        
         await showMessageAndAwaitUserAction(staircaseParams.messageBetweenStairs);
     }
 
     //let meanValue = Math.round(variableValues.slice(-staircaseParams.numSaverage).reduce((acc, val) => acc + val, 0) / N);
 
-    updateParticipantLog();
+    //updateParticipantLog();
     window.prolificCheckpointCode = window.step.completionCode;
     await presentEndOfBlockOptions(staircaseParams.messageAfterBlock);
 
 }
 
+async function executeStaircaseBlock(staircaseParams, block){
+    
+    console.log("in executeStaircaseBlock:", staircaseParams, block);
+
+    let trialsContainer = createDynContainer('trialsContainer', null, style = {alignItems: 'start'});
+    let trialsFooter = createDynFooter(parentElement = trialsContainer);
+
+    let myProgressBar = createDynProgressBar(
+        {}, // style // No additional styles
+        trialsFooter, // parentElement // Appending to the loginContainer
+        false // showValue // Not showing the progress value
+    );
+
+    //let numberOfTrials = Object.keys(blockParams.driveFolderContents).length;
+    //let trialNumber = 0;
+    //for (const fileName in blockParams.driveFolderContents) {
+
+    let fileUrl = staircaseParams.blockAdresses[block][0]; // This is the drive download link (fails in frontend without third party cookies)
+    console.log("in executeStaircaseBlock, fileUrl:", fileUrl);
+    
+    let blockResponse = await playMediaAndGetOutcome(staircaseParams, fileUrl);
+    console.log("BlockResponse: ", blockResponse);
+
+    if(blockResponse == true){
+        block = block + 1;
+        console.log("in if: block:", block);
+    }
+    console.log("Block to be displayed: ", block);
+
+
+    //const fileId = blockParams.driveFolderContents[fileName].fileId; // This is the file ID
+
+    //const trialResponse = await playMediaAndCaptureResponse()
+    //const trialResponse = await playMediaAndCaptureResponse(blockParams, fileName, fileId, fileUrl, trialsContainer);
+    //blockResponses[trialNumber++] = { fileName, blockName: blockParams.blockName, trialResponse };
+        
+/*     await updateProgressBar(
+        myProgressBar, // progressBar
+        100*(trialNumber)/numberOfTrials, // value
+        0.2, // duration in seconds
+        false, // removeOnComplete
+    ); */
+    //}
+
+    //if result correct --> return block + 1
+    //else return same block, as sent  
+    return block;
+
+}
+
 async function executeStaircase(staircaseParams) {
+
 
     let trialsContainer = createDynContainer('trialsContainer', null, style = {alignItems: 'start'});
 
@@ -71,15 +130,15 @@ async function executeStaircase(staircaseParams) {
     );
 
     // determine starting val
-    let minVal = Math.min(...staircaseParams.startValueRange);
-    let maxVal = Math.max(...staircaseParams.startValueRange);
-    let currentVal = (minVal === maxVal) ? minVal : Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
+    //let minVal = Math.min(...staircaseParams.startValueRange);
+    //let maxVal = Math.max(...staircaseParams.startValueRange);
+    //let currentVal = (minVal === maxVal) ? minVal : Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
 
-    let allVals = [];
-    let reversalCount = 0;
-    let reversalVals = [];    
-    let direction = 0;
-    let correct = null;
+    //let allVals = [];
+    //let reversalCount = 0;
+    //let reversalVals = [];    
+    //let direction = 0;
+    //let correct = null;
     while (reversalCount < staircaseParams.numReversals) {
 
         allVals.push(currentVal);

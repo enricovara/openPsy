@@ -98,9 +98,7 @@ async function executeStaircaseBlock(staircaseParams, block){
 
     //const fileId = blockParams.driveFolderContents[fileName].fileId; // This is the file ID
 
-    //const trialResponse = await playMediaAndCaptureResponse()
-    //const trialResponse = await playMediaAndCaptureResponse(blockParams, fileName, fileId, fileUrl, trialsContainer);
-    //blockResponses[trialNumber++] = { fileName, blockName: blockParams.blockName, trialResponse };
+   //blockResponses[trialNumber++] = { fileName, blockName: blockParams.blockName, trialResponse };
         
 /*     await updateProgressBar(
         myProgressBar, // progressBar

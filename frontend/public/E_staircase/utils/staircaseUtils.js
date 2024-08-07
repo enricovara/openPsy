@@ -2,6 +2,12 @@
 
 //const { fancylog } = require("../../../../backend/utils");
 
+const selectedAnswers = {
+    color: null,
+    letter: null,
+    number: null
+};
+
 function isValidJSON(str) {
     try {
         JSON.parse(str);
@@ -59,6 +65,7 @@ async function playMediaAndGetOutcome(staircaseParams, fileUrl) {
         console.log("after playSuccess");
 
         const correctAnswer = getCorrectAnswer(staircaseParams, fileName);
+        console.log("correct Answer;", correctAnswer)
 
         if (playSuccess) {
             //let endOfBlockContainer = createDynContainer('endOfBlockContainer', null, style = {justifyContent: 'center'});
@@ -88,50 +95,44 @@ async function playMediaAndGetOutcome(staircaseParams, fileUrl) {
             wrapperContainer.appendChild(numberContainer);
             wrapperContainer.appendChild(yesNoContainer);
 
-
             staircaseParams.answers.forEach(answer => {
                 const button = document.createElement('button');
                 button.innerText = answer;
-                button.onclick = () => handleAnswerClick(answer);
+                button.onclick = () => handleAnswerClick(answer, correctAnswer);
                 yesNoContainer.appendChild(button);
             });
 
             staircaseParams.answersGridColors.forEach(color => {
                 const button = document.createElement('button');
                 button.innerText = color;
-                button.onclick = (event) => handleButtonClick(event, colorContainer);
+                button.onclick = (event) => handleButtonClick(event, colorContainer, "color");
                 colorContainer.appendChild(button);
             });
 
             staircaseParams.answersGridLetters.forEach(letter => {
                 const button = document.createElement('button');
                 button.innerText = letter;
-                button.onclick = (event) => handleButtonClick(event, letterContainer);
+                button.onclick = (event) => handleButtonClick(event, letterContainer, "letter");
                 letterContainer.appendChild(button);
             });
 
             staircaseParams.answersGridNumbers.forEach(number => {
                 const button = document.createElement('button');
                 button.innerText = number;
-                button.onclick = (event) => handleButtonClick(event, numberContainer);
+                button.onclick = (event) => handleButtonClick(event, numberContainer, "number");
                 numberContainer.appendChild(button);
             });
 
             // Wait for the participant to click an answer
-            const selectedAnswer = await waitForAnswer();
-            console.log('Selected Answer:', selectedAnswer);
+            const isCorrect = await waitForAnswer();
+
+            console.log('Selected Answer:', isCorrect);
 
             removeContainer('wrapperContainer');
 
             // Perform any additional actions based on the selected answer
-            if (selectedAnswer == 'YES') {
-                console.log("in if");
-                return true;
-            }
-            else {
-                console.log("in else");
-                return false;
-            }
+            // return value 
+            return isCorrect;
         }
 
     }
@@ -299,17 +300,42 @@ async function getRandomFileFromFolder(folderId) {
     }
 }
 
-function handleAnswerClick(answer) {
-    const event = new CustomEvent('answerSelected', { detail: answer });
+function handleAnswerClick(answer, correctAnswer) {
+    console.log("in handleAnswerClick");
+    
+    let isCorrect = compareAnswers(correctAnswer);
+
+    const event = new CustomEvent('answerSelected', { detail: isCorrect });
     document.dispatchEvent(event);
 }
 
-function handleButtonClick(event, container) {
+function compareAnswers(correctAnswer) {
+    let correctBoolean = null;
+    console.log("Correct Answer:", correctAnswer);
+    answerCombination = selectedAnswers.color + "," + selectedAnswers.letter + "," + selectedAnswers.number;
+    console.log("participant Answer: ", answerCombination );
 
+    if (correctAnswer == answerCombination){
+        // update block number +1 
+        console.log("in compareAnswers // in if ");
+        correctBoolean = true;
+    }
+    else {
+        // keep same block number
+        console.log("in compareAnswers // in else");
+        correctBoolean = false;
+    }
+
+    return correctBoolean;
+}
+
+function handleButtonClick(event, container, answerType) {
     console.log("in handleButtonClick");
     const buttons = container.querySelectorAll('button');
     buttons.forEach(btn => btn.classList.remove('selected'));
+    selectedAnswers[answerType] = event.target.innerText;
     event.target.classList.add('selected');
+    console.log(`Selected ${answerType}:`, selectedAnswers[answerType]);
 }
 
 // Function to get correct answer
@@ -319,22 +345,11 @@ function getCorrectAnswer(staircaseParams, fileName) {
 
     for (let i = 0; i < staircaseParams.fileNamesAndAnswers.length; i++) {
         let filenameToCompare = staircaseParams.fileNamesAndAnswers[i].fileName;
-
-        console.log("In Loop, Comparing file:", filenameToCompare);
-
         if (filenameToCompare == fileName) {
-            let correctAnswer = staircaseParams.fileNamesAndAnswers[i].answer;
+            correctAnswer = staircaseParams.fileNamesAndAnswers[i].answer;
             console.log("in if; updating correctAnswer: ", correctAnswer);
         }
     }
-
-    if (correctAnswer != null) {
-        console.log("filename represented in database");
-    }
-    else {
-        console.log("ID not found, add filename and answer to database");
-    }
-
     return correctAnswer;
 }
 
@@ -348,7 +363,7 @@ function waitForAnswer() {
     });
 }
 
-// Function to remove the answer container
+// Function to remove the answer container after the participant confirmed answer
 function removeContainer(containerID) {
     const container = document.getElementById(containerID);
     if (container) {

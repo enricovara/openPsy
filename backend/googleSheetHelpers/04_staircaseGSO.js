@@ -3,6 +3,7 @@
 const { getAuthenticatedClient, getAuthenticatedDriveClient } = require('./00_googleSheetAuth');
 
 const { parseUserAgent, fancylog } = require('../utils');
+const { file } = require('googleapis/build/src/apis/file');
 
 
 /**
@@ -38,6 +39,9 @@ async function fetchStaircaseParams(mainSheetID, prolificID, version) {
         `${sheetTab}E12:H12`,               // Answers colors             [7]
         `${sheetTab}E13:H13`,               // Answers letters            [8]
         `${sheetTab}E14:H14`,               // Answers numbers            [9]
+
+        `${sheetTab}C38:D40`,               // Filename with answers     [10]
+
     ];
     
     //fancylog.log(RANGES)
@@ -48,7 +52,6 @@ async function fetchStaircaseParams(mainSheetID, prolificID, version) {
             spreadsheetId: mainSheetID,
             ranges: RANGES
         });
-        fancylog.log("Response:", response);
 
         const sheetData = response.data.valueRanges;
 
@@ -69,7 +72,10 @@ async function fetchStaircaseParams(mainSheetID, prolificID, version) {
         const answersGridLetters = sheetData[8].values[0];
         const answersGridNumbers = sheetData[9].values[0];
 
-
+        const fileNamesAndAnswers = sheetData[10].values.map(row => ({
+            fileName: row[0],
+            answer: row[1]
+        }));
 
         fancylog.log(`numOfStars: ${numOfStairs}`)
         fancylog.log(`question: ${question}`);
@@ -84,6 +90,8 @@ async function fetchStaircaseParams(mainSheetID, prolificID, version) {
         fancylog.log(`GRID colors: ${answersGridColors}`);
         fancylog.log(`GRID letters: ${answersGridLetters}`);
         fancylog.log(`GRID numbers: ${answersGridNumbers}`);
+
+        fancylog.log(`filename & answers: ${fileNamesAndAnswers}`);
 
         //const stepCorrect = parseInt(sheetData[1].values[0][0]);
         //const stepIncorrect = parseInt(sheetData[2].values[0][0]);
@@ -129,29 +137,12 @@ async function fetchStaircaseParams(mainSheetID, prolificID, version) {
             messageAfterBlock,
             answersGridColors,
             answersGridNumbers,
-            answersGridLetters
+            answersGridLetters,
+            fileNamesAndAnswers
         };
-        
+
         fancylog.log(`result in staircaseGSO: ${JSON.stringify(result)}`);
         return result;
-        //return result;
-
-        // Create the result object
- /*        return {
-            startValueRange,
-            stepCorrect,
-            stepIncorrect,
-            numStairs,
-            numSaverage,
-            numReversals,
-            numRaverage,
-            mediaType,
-            messageBeforeBlock,
-            messageBetweenStairs,
-            messageAfterBlock,
-            intIndexedFolderIDs,
-            intIndexedFolderURLs,
-        }; */
         
     } catch (error) {
         fancylog.error("Error fetching staircase parameters from Google Sheets:", error);

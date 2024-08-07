@@ -40,60 +40,95 @@ async function fetchStaircaseParams() {
 function isValidJSON(text) {
     try {
         JSON.parse(text);
-    
+
     } catch (error) {
         return false;
     }
 }
 
 
-async function playMediaAndGetOutcome (staircaseParams , fileUrl){
-    try{
+async function playMediaAndGetOutcome(staircaseParams, fileUrl) {
+    try {
         let currentFolderID = fileUrl.split('/').pop();
-        console.log("in playMediaAndCaputreResponse: get currentfolderID: ", currentFolderID);
-        
         console.log(`Picking a random file from ${fileUrl}`);
-    
-        const { fileId, fileName} = await getRandomFileFromFolder(currentFolderID);
-        console.log("after getRandomFileFromFolder");
+        const { fileId, fileName } = await getRandomFileFromFolder(currentFolderID);
+
+        console.log("Random file picked: fileId:", fileId, " fileName: ", fileName);
 
         const playSuccess = await playAudio(fileUrl, fileId, fileName, trialsContainer);
         console.log("after playSuccess");
 
+        const correctAnswer = getCorrectAnswer(staircaseParams, fileName);
+
         if (playSuccess) {
             //let endOfBlockContainer = createDynContainer('endOfBlockContainer', null, style = {justifyContent: 'center'});
 
-
-            const answerContainer = createDynContainer('answerContainer', null, style= {
-                marginBottom: '50px',
-                alignSelf: 'center', 
-                justifyContent: 'center',
+            // Create containers for yes/no and GRID answers using createDynSubContainer
+            const colorContainer = createDynSubContainer('colorContainer', document.body, {});
+            const letterContainer = createDynSubContainer('letterContainer', document.body, {});
+            const numberContainer = createDynSubContainer('numberContainer', document.body, {});
+            const yesNoContainer = createDynSubContainer('yesNoContainer', document.body, {
+                flexDirection: 'row',
             });
+
+
+            // Create a wrapper container to hold both yes/no and color containers
+            const wrapperContainer = createDynContainer('wrapperContainer', document.body, {
+                display: 'flex',
+                flexDirection: 'row',
+                justifyContent: 'center',
+                alignItems: 'flex-start',
+                gap: '20px', // Add gap between the containers
+                width: '100%',
+                padding: '20px'
+            });
+
+            wrapperContainer.appendChild(colorContainer);
+            wrapperContainer.appendChild(letterContainer);
+            wrapperContainer.appendChild(numberContainer);
+            wrapperContainer.appendChild(yesNoContainer);
+
 
             staircaseParams.answers.forEach(answer => {
                 const button = document.createElement('button');
                 button.innerText = answer;
-                // Apply styles to the button
-                Object.assign(button.style, {
-                    marginBottom: '50px',
-                    alignSelf: 'center'
-                });                button.onclick = () => handleAnswerClick(answer);
-                answerContainer.appendChild(button);
+                button.onclick = () => handleAnswerClick(answer);
+                yesNoContainer.appendChild(button);
+            });
+
+            staircaseParams.answersGridColors.forEach(color => {
+                const button = document.createElement('button');
+                button.innerText = color;
+                button.onclick = (event) => handleButtonClick(event, colorContainer);
+                colorContainer.appendChild(button);
+            });
+
+            staircaseParams.answersGridLetters.forEach(letter => {
+                const button = document.createElement('button');
+                button.innerText = letter;
+                button.onclick = (event) => handleButtonClick(event, letterContainer);
+                letterContainer.appendChild(button);
+            });
+
+            staircaseParams.answersGridNumbers.forEach(number => {
+                const button = document.createElement('button');
+                button.innerText = number;
+                button.onclick = (event) => handleButtonClick(event, numberContainer);
+                numberContainer.appendChild(button);
             });
 
             // Wait for the participant to click an answer
             const selectedAnswer = await waitForAnswer();
             console.log('Selected Answer:', selectedAnswer);
-            
-            removeAnswerContainer('answerContainer');
 
+            removeContainer('wrapperContainer');
 
             // Perform any additional actions based on the selected answer
-            if (selectedAnswer=='YES'){
+            if (selectedAnswer == 'YES') {
                 console.log("in if");
                 return true;
             }
-            else{
+            else {
                 console.log("in else");
                 return false;
             }
@@ -105,7 +140,7 @@ async function playMediaAndGetOutcome (staircaseParams , fileUrl){
         console.error('Error playing or recording outcome:', error);
         console.log(`   prolificID and mainSheetID:`, window.participant.prolificID, window.expParams.mainSheetID);
         console.log(`   Redirecting user with error code`);
-        await redirectHandler(`Error ${window.step.number}.2.2`, `${window.STR.pleaseEmailErrorCode}<br>${error}`, window.prolificCheckpointCode, allowRetry=true);
+        await redirectHandler(`Error ${window.step.number}.2.2`, `${window.STR.pleaseEmailErrorCode}<br>${error}`, window.prolificCheckpointCode, allowRetry = true);
     }
 }
 
@@ -258,14 +293,49 @@ async function getRandomFileFromFolder(folderId) {
             console.log(`   Redirecting user with error code`);
             reportErrorToServer(error);
             if (retryCount >= maxRetries) {
-                await redirectHandler(`Error ${window.step.number}.2.2`, `${window.STR.pleaseEmailErrorCode}<br>${error}`, window.prolificCheckpointCode, allowRetry=true);
+                await redirectHandler(`Error ${window.step.number}.2.2`, `${window.STR.pleaseEmailErrorCode}<br>${error}`, window.prolificCheckpointCode, allowRetry = true);
             }
         }
     }
 }
+
 function handleAnswerClick(answer) {
     const event = new CustomEvent('answerSelected', { detail: answer });
     document.dispatchEvent(event);
+}
+
+function handleButtonClick(event, container) {
+
+    console.log("in handleButtonClick");
+    const buttons = container.querySelectorAll('button');
+    buttons.forEach(btn => btn.classList.remove('selected'));
+    event.target.classList.add('selected');
+}
+
+// Function to get correct answer
+function getCorrectAnswer(staircaseParams, fileName) {
+    let correctAnswer = null;
+    console.log('get correct answer for file:', fileName);
+
+    for (let i = 0; i < staircaseParams.fileNamesAndAnswers.length; i++) {
+        let filenameToCompare = staircaseParams.fileNamesAndAnswers[i].fileName;
+
+        console.log("In Loop, Comparing file:", filenameToCompare);
+
+        if (filenameToCompare == fileName) {
+            let correctAnswer = staircaseParams.fileNamesAndAnswers[i].answer;
+            console.log("in if; updating correctAnswer: ", correctAnswer);
+        }
+    }
+
+    if (correctAnswer != null) {
+        console.log("filename represented in database");
+    }
+    else {
+        console.log("ID not found, add filename and answer to database");
+    }
+
+    return correctAnswer;
 }
 
 // Function to wait for an answer
@@ -279,7 +349,7 @@ function waitForAnswer() {
 }
 
 // Function to remove the answer container
-function removeAnswerContainer(containerID) {
+function removeContainer(containerID) {
     const container = document.getElementById(containerID);
     if (container) {
         container.remove();
@@ -287,33 +357,33 @@ function removeAnswerContainer(containerID) {
 }
 
 async function processAndSendAllStaircaseVals(sheetTab, blockName, blockResponses) {
-  let allRowData = [];
+    let allRowData = [];
 
-  // Loop through each block in blockResponses
-  for (const [index, block] of Object.entries(blockResponses)) {
-    // Start with the blockName and filename
-    let rowData = [blockName, block.fileName];
+    // Loop through each block in blockResponses
+    for (const [index, block] of Object.entries(blockResponses)) {
+        // Start with the blockName and filename
+        let rowData = [blockName, block.fileName];
 
-    // Flatten each trial's data in the trialResponse
-    block.trialResponse.forEach(trial => {
-      Object.values(trial).forEach(value => {
-        rowData.push(`${value}`); // appending only the value of each field
-      });
-    });
+        // Flatten each trial's data in the trialResponse
+        block.trialResponse.forEach(trial => {
+            Object.values(trial).forEach(value => {
+                rowData.push(`${value}`); // appending only the value of each field
+            });
+        });
 
-    // Add the constructed rowData to the allRowData list
-    allRowData.push(rowData);
-  }
+        // Add the constructed rowData to the allRowData list
+        allRowData.push(rowData);
+    }
 
-  // Call the function to update the Google Sheet with all row data at once
-  try {
-    await generalNewLineUpdate(sheetTab, allRowData, window.step.version);
-  } catch (error) {
-    reportErrorToServer(error);
-    console.error('Error processing all block responses:', error);
-    console.log(`   prolificID and mainSheetID:`, window.participant.prolificID, window.expParams.mainSheetID);
-    console.log(`   Redirecting user with error code`);
-    await redirectHandler(`Error ${window.step.number}.1.4`, `${window.STR.pleaseEmailErrorCode}<br>${error}`, window.prolificCheckpointCode, allowRetry=true);
-  }
+    // Call the function to update the Google Sheet with all row data at once
+    try {
+        await generalNewLineUpdate(sheetTab, allRowData, window.step.version);
+    } catch (error) {
+        reportErrorToServer(error);
+        console.error('Error processing all block responses:', error);
+        console.log(`   prolificID and mainSheetID:`, window.participant.prolificID, window.expParams.mainSheetID);
+        console.log(`   Redirecting user with error code`);
+        await redirectHandler(`Error ${window.step.number}.1.4`, `${window.STR.pleaseEmailErrorCode}<br>${error}`, window.prolificCheckpointCode, allowRetry = true);
+    }
 }
 

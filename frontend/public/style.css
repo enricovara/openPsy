@@ -1,0 +1,33 @@
+body {
+    margin: 0;
+    padding: 0;
+    height: 100vh; /* Use the full viewport height */
+    overflow: hidden; /* Prevent the body from scrolling */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+button {
+    padding: 10px 20px; /* Increase padding for better spacing */
+    margin: 5px;
+    border: 1px solid #ccc;
+    border-radius: 10px; /* Rounded corners */
+    cursor: pointer;
+    background: linear-gradient(to bottom, #605f5f, #171616); /* Gradient background */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2); /* Subtle shadow */
+    transition: all 0.3s ease; /* Smooth transition for hover effects */
+    font-size: 16px; /* Larger font size */
+    align-self: center;
+    color: white;
+}
+
+.selected {
+    background: linear-gradient(to bottom, rgb(245, 160, 245), #cd45ff); /* Gradient background */
+    color: white;
+}
+
+button:hover {
+    background: linear-gradient(to bottom, white, grey); /* Gradient background */
+    color: black;
+}

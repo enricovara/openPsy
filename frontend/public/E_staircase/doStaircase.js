@@ -47,6 +47,7 @@ async function doStaircase() {
 
     //we start with audio 1, block is updated if successfull response 
     let block = 0;   
+
     //numOfStairs: how many files are presented to each participant --> 10 files  
     for (let i = 0; i < staircaseParams.numOfStairs; i++) {
         console.log("in for loop, index", i);
@@ -55,10 +56,8 @@ async function doStaircase() {
         block = x;
         //variableValues[i] = await executeStaircase(staircaseParams, i);
         
-        await showMessageAndAwaitUserAction(staircaseParams.messageBetweenStairs);
+        //await showMessageAndAwaitUserAction(staircaseParams.messageBetweenStairs[0]);
     }
-
-    //let meanValue = Math.round(variableValues.slice(-staircaseParams.numSaverage).reduce((acc, val) => acc + val, 0) / N);
 
     //updateParticipantLog();
     window.prolificCheckpointCode = window.step.completionCode;
@@ -92,6 +91,11 @@ async function executeStaircaseBlock(staircaseParams, block){
     if(blockResponse == true){
         block = block + 1;
         console.log("in if: block:", block);
+        await showMessageAndAwaitUserAction(staircaseParams.messageBetweenStairs[1]);
+
+    }
+    else{
+        await showMessageAndAwaitUserAction(staircaseParams.messageBetweenStairs[2]);
     }
     console.log("Block to be displayed: ", block);
 

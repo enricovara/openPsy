@@ -16,11 +16,10 @@ const { file } = require('googleapis/build/src/apis/file');
 async function fetchStaircaseParams(mainSheetID, prolificID, version) {
     const googleSheets = await getAuthenticatedClient();
     
-    const FIRST_DATA_ROW = 18;
-    const FIRST_DATA_COLUMN_INDEX = 4; //D
+    //const FIRST_DATA_ROW = 18;
+    //const FIRST_DATA_COLUMN_INDEX = 4; //D
     
     // Define constants for the hardcoded ranges
-    
     const sheetTab = `staircase${version ? version : ''}!`;
     
     fancylog.log(sheetTab)
@@ -30,7 +29,7 @@ async function fetchStaircaseParams(mainSheetID, prolificID, version) {
         `${sheetTab}D4`,                    // MESSAGE_BEFORE_BLOCK_RANGE [0]
         `${sheetTab}D5`,                    // MESSAGE_AFTER_BLOCK_RANGE  [1]
         `${sheetTab}D6`,                    // Number of stairs           [2]
-        `${sheetTab}D11`,                   // MESSAGE_BETWEEN STAIRS     [3]
+        `${sheetTab}C11:C13`,               // MESSAGE_BETWEEN STAIRS     [3]
         `${sheetTab}E11:F11`,               // Answers yes no, later GRID [4]
         
         `${sheetTab}C19:C28`,               // BLOCK_MEDIA_ADDRESS_RANGE  [5]
@@ -65,7 +64,7 @@ async function fetchStaircaseParams(mainSheetID, prolificID, version) {
         const blockNumber = sheetData[6].values;
 
         const messageBeforeBlock = sheetData[0]?.values[0][0] ?? undefined;
-        const messageBetweenStairs = sheetData[3]?.values[0][0] ?? undefined;
+        const messageBetweenStairs = sheetData[3].values;
         const messageAfterBlock = sheetData[1]?.values[0][0] ?? undefined; 
         
         const answersGridColors = sheetData[7].values[0];

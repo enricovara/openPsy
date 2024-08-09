@@ -92,38 +92,6 @@ async function fetchStaircaseParams(mainSheetID, prolificID, version) {
 
         fancylog.log(`filename & answers: ${fileNamesAndAnswers}`);
 
-        //const stepCorrect = parseInt(sheetData[1].values[0][0]);
-        //const stepIncorrect = parseInt(sheetData[2].values[0][0]);
-        //const numStairs = parseInt(sheetData[3].values[0][0]);
-        //const numSaverage = parseInt(sheetData[4].values[0][0]); // num stairs to be averaged (e.g. if first is practice)
-        //const numReversals = parseInt(sheetData[5].values[0][0]);
-        //const numRaverage = parseInt(sheetData[6].values[0][0]); // num reversals to be averaged (e.g. if first is forgiven)
-        //const mediaType = sheetData[7].values[0][0]; // "video" or "audio"
-
-
-        //fancylog.log(`startValueRange: ${startValueRange}`)
-        //fancylog.log(`stepCorrect, stepIncorrect: ${stepCorrect} ${stepIncorrect}`)
-        //fancylog.log(`numStairs: ${numStairs}`)
-        //fancylog.log(`numReversals, numRaverage: ${numReversals} ${numRaverage}`)
-
-        //const variableList = sheetData[11].values;
-        //const mediaAddressList = sheetData[12].values;
-        
-        //fancylog.log("variableList", variableList)
-        //fancylog.log("mediaAddressList", mediaAddressList)
-
-        //let intIndexedFolderIDs = {};
-        //let intIndexedFolderURLs = {};
-        //for (let i = 0; i < variableList.length; i++) {
-        //    let key = parseInt(variableList[i], 10);
-        //    if (!isNaN(key) && mediaAddressList[i]) {
-        //        folderURL = mediaAddressList[i];
-        //        intIndexedFolderURLs[key] = folderURL;
-        //        fancylog.log(folderURL)
-        //        intIndexedFolderIDs[key] = folderURL[0].split('/').pop();
-        //    }
-        //}
-
         // Create the result object
         const result = {
             numOfStairs,
@@ -139,8 +107,7 @@ async function fetchStaircaseParams(mainSheetID, prolificID, version) {
             answersGridLetters,
             fileNamesAndAnswers
         };
-
-        fancylog.log(`result in staircaseGSO: ${JSON.stringify(result)}`);
+        
         return result;
         
     } catch (error) {

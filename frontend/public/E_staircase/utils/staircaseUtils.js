@@ -1,21 +1,7 @@
 // staircaseUtils.js
 
-//const { fancylog } = require("../../../../backend/utils");
+const { format } = require("path");
 
-const selectedAnswers = {
-    color: null,
-    letter: null,
-    number: null
-};
-
-function isValidJSON(str) {
-    try {
-        JSON.parse(str);
-        return true;
-    } catch (e) {
-        return false;
-    }
-}
 
 async function fetchStaircaseParams() {
     let data;
@@ -51,7 +37,6 @@ function isValidJSON(text) {
         return false;
     }
 }
-
 
 async function playMediaAndGetOutcome(staircaseParams, fileUrl) {
     try {
@@ -129,10 +114,12 @@ async function playMediaAndGetOutcome(staircaseParams, fileUrl) {
             console.log('Selected Answer:', isCorrect);
 
             removeContainer('wrapperContainer');
+            let answerCombination = selectedAnswers.color + "," + selectedAnswers.letter + "," + selectedAnswers.number;
 
-            // Perform any additional actions based on the selected answer
-            // return value 
-            return isCorrect;
+            let result = [fileName, isCorrect, answerCombination];
+
+            console.log("In playMediaAndGetOutcome: result: ", result);
+            return result;
         }
 
     }
@@ -146,6 +133,16 @@ async function playMediaAndGetOutcome(staircaseParams, fileUrl) {
 }
 
 async function playAudio(fileUrl, fileId, fileName, mediaContainer) {
+
+    let blockContainer = createDynContainer('blockContainer', null, style = {alignItems: 'start'});
+    let blockFooter = createDynFooter(parentElement = blockContainer);
+
+    let myProgressBar = createDynProgressBar(
+        {}, // style // No additional styles
+        blockFooter, // parentElement // Appending to the loginContainer
+        false // showValue // Not showing the progress value
+    );
+    
     let retryCount = 0;
     const maxRetries = 5; // Maximum number of retries
     const timeoutDuration = 5000; // Increase timeout duration to 5 seconds
@@ -192,9 +189,18 @@ async function playAudio(fileUrl, fileId, fileName, mediaContainer) {
                         }
                         reject(new Error(errorMessage));
                     };
+                    updateProgressBar(
+                        myProgressBar, // progressBar
+                        50, // value
+                        0.2, // duration
+                        false, // removeOnComplete
+                        150 // removeDelay
+                    );
+
                     // Start loading the media
                     if (mediaElement.readyState < mediaElement.HAVE_FUTURE_DATA) {
                         console.log('Starting to load media...');
+
                         mediaElement.load(); // Start loading the media
                     } else {
                         console.log('Media is already loading or loaded.');
@@ -206,13 +212,31 @@ async function playAudio(fileUrl, fileId, fileName, mediaContainer) {
                 // Use Promise.race to proceed with whichever promise resolves or rejects first
                 await Promise.race([operationPromise, timeoutPromise]);
 
+                updateProgressBar(
+                    myProgressBar, // progressBar
+                    80, // value
+                    0.8, // duration
+                    false, // removeOnComplete
+                    150 // removeDelay
+                );
+
                 // Play media and wait for it to end
                 console.log(`...playing`);
                 await new Promise((resolve, reject) => {
+
                     mediaElement.onended = resolve;
                     mediaElement.onwaiting = () => reject(new Error('Buffering detected, playback halted'));
                     mediaElement.play().then(() => console.log(`Playing ${fileName}`)).catch(reject);
                 });
+
+                updateProgressBar(
+                    myProgressBar, // progressBar
+                    100, // value
+                    0.8, // duration
+                    true, // removeOnComplete
+                    100 // removeDelay
+                );
+
                 console.log(`Finished playing ${fileName}`);
 
                 if (audioCtx.outputLatency) {
@@ -239,40 +263,6 @@ async function playAudio(fileUrl, fileId, fileName, mediaContainer) {
         }
     }
 }
-
-/* async function playMediaAndGetOutcome(staircaseParams, currentVal, trialsContainer) {
-
-    try {
-
-        let currentValFolderID = staircaseParams.intIndexedFolderIDs[currentVal];
-        let currentValFolderURL = staircaseParams.intIndexedFolderURLs[currentVal];
-
-        console.log(`Picking a random file from ${currentValFolderURL}`)
-        const { fileId, fileName } = await getRandomFileFromFolder(currentValFolderID);
-
-        const playSuccess = await playStim("", fileId, fileName, trialsContainer)
-
-        if (!playSuccess) { // playing 2 roles at once!
-            throw new Error('Failed to play');
-        }
-
-        correctResponse = getGRIDfromFilename(fileName);
-        console.log(correctResponse)
-
-        const response = await respGRID(); // Present questions
-
-        return isCorrectResponse = correctResponse[0] === response.selectedColor && correctResponse[1] === response.selectedLetter && (correctResponse[2] === 'z' ? '0' : correctResponse[2]) === response.selectedNumber;
-    
-    } catch (error) {
-        reportErrorToServer(error);
-        console.error('Error playing or recording outcome:', error);
-        console.log(`   prolificID and mainSheetID:`, window.participant.prolificID, window.expParams.mainSheetID);
-        console.log(`   Redirecting user with error code`);
-        await redirectHandler(`Error ${window.step.number}.2.2`, `${window.STR.pleaseEmailErrorCode}<br>${error}`, window.prolificCheckpointCode, allowRetry=true);
-    }
-
-} */
-
 
 async function getRandomFileFromFolder(folderId) {
     let retryCount = 0;
@@ -330,15 +320,16 @@ function compareAnswers(correctAnswer) {
 }
 
 function handleButtonClick(event, container, answerType) {
-    console.log("in handleButtonClick");
+    console.log("in handleButtonClick: answerType: ", answerType);
     const buttons = container.querySelectorAll('button');
     buttons.forEach(btn => btn.classList.remove('selected'));
-    selectedAnswers[answerType] = event.target.innerText;
+    console.log("selectedAnswers: in handleButtonclick", selectedAnswers);
+    selectedAnswers[answerType] = event.target.innerText;  // Update the selected answer
     event.target.classList.add('selected');
     console.log(`Selected ${answerType}:`, selectedAnswers[answerType]);
 }
 
-// Function to get correct answer
+// Function to get correct answer of file 
 function getCorrectAnswer(staircaseParams, fileName) {
     let correctAnswer = null;
     console.log('get correct answer for file:', fileName);
@@ -371,24 +362,22 @@ function removeContainer(containerID) {
     }
 }
 
-async function processAndSendAllStaircaseVals(sheetTab, blockName, blockResponses) {
+// Function so save the answers in Googlesheet 
+async function processAndSendStaircaseVal(sheetTab, blockAbsolved, blockResponses) {
     let allRowData = [];
 
+    let rowData = [];
+    rowData.push(blockAbsolved);
+
     // Loop through each block in blockResponses
-    for (const [index, block] of Object.entries(blockResponses)) {
-        // Start with the blockName and filename
-        let rowData = [blockName, block.fileName];
+    for (let i = 0; i < blockResponses.length; i++){
+        console.log ('in loop: ', blockResponses[i]);
 
-        // Flatten each trial's data in the trialResponse
-        block.trialResponse.forEach(trial => {
-            Object.values(trial).forEach(value => {
-                rowData.push(`${value}`); // appending only the value of each field
-            });
-        });
+        rowData.push(blockResponses[i]);
 
-        // Add the constructed rowData to the allRowData list
-        allRowData.push(rowData);
     }
+    // Add the constructed rowData to the allRowData list
+    allRowData.push(rowData);
 
     // Call the function to update the Google Sheet with all row data at once
     try {

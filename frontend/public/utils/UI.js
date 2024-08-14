@@ -1,3 +1,4 @@
+const { callOnce } = require("nuxt/app");
 
 /**
  * Dynamically creates a new container (div element) with default and additional custom styles.
@@ -58,6 +59,7 @@ function createDynSubContainer(containerID, parentElement = null, style = {}) {
             alignItems: 'center',
             marginRight: '1rem', // Add margin to separate from the other container
             height: 'auto',
+            width: 'calc(33% - 10px)',
         };
     
         // Apply default styles and then override with provided styles

@@ -59,7 +59,7 @@ async function doStaircase() {
         
         //blockResponses[i] = [block, isCorrect, selectedAnswer]
         blockResponses[i] = await executeStaircaseBlock (staircaseParams, block);
-        console.log("in doStaircase: blockResponses[i]: ", blockResponses[i] );
+        console.log("in doStaircase: blockResponses[i]: ", blockResponses[i]);
     
         
         //await showMessageAndAwaitUserAction(staircaseParams.messageBetweenStairs[0]);

@@ -1,6 +1,7 @@
 // staircaseUtils.js
 
-const { format } = require("path");
+//const { format } = require("path");
+//const { block } = require("rules");
 
 
 async function fetchStaircaseParams() {
@@ -60,12 +61,10 @@ async function playMediaAndGetOutcome(staircaseParams, fileUrl) {
             const letterContainer = createDynSubContainer('letterContainer', document.body, {});
             const numberContainer = createDynSubContainer('numberContainer', document.body, {});
             const yesNoContainer = createDynSubContainer('yesNoContainer', document.body, {
-                flexDirection: 'row',
+                width: '100%',
             });
 
-
-            // Create a wrapper container to hold both yes/no and color containers
-            const wrapperContainer = createDynContainer('wrapperContainer', document.body, {
+            let staircaseContainer = createDynContainer('staircaseContainer', null, style = {
                 display: 'flex',
                 flexDirection: 'row',
                 justifyContent: 'center',
@@ -75,10 +74,11 @@ async function playMediaAndGetOutcome(staircaseParams, fileUrl) {
                 padding: '20px'
             });
 
-            wrapperContainer.appendChild(colorContainer);
-            wrapperContainer.appendChild(letterContainer);
-            wrapperContainer.appendChild(numberContainer);
-            wrapperContainer.appendChild(yesNoContainer);
+
+            staircaseContainer.appendChild(colorContainer);
+            staircaseContainer.appendChild(letterContainer);
+            staircaseContainer.appendChild(numberContainer);
+            staircaseContainer.appendChild(yesNoContainer);
 
             staircaseParams.answers.forEach(answer => {
                 const button = document.createElement('button');
@@ -113,7 +113,7 @@ async function playMediaAndGetOutcome(staircaseParams, fileUrl) {
 
             console.log('Selected Answer:', isCorrect);
 
-            removeContainer('wrapperContainer');
+            removeContainer('staircaseContainer');
             let answerCombination = selectedAnswers.color + "," + selectedAnswers.letter + "," + selectedAnswers.number;
 
             let result = [fileName, isCorrect, answerCombination];

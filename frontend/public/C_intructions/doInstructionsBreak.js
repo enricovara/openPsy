@@ -27,7 +27,8 @@ async function doInstrBreak() {
 
     let title = createDynTextElement(window.STR.instructionsTitle, 'Title', parentElement = instructionsContainer, style = {alignSelf: 'center'})
 
-    let textMD = await getMDtext('instrBreak');
+    // let textMD = await getMDtext('instrBreak'); 
+    let textMD = await getMDtext(`instrBreak${window.step.version || ''}`);
 
     await updateProgressBar(
         myProgressBar, // progressBar

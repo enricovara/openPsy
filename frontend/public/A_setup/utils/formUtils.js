@@ -14,7 +14,9 @@
  */
 async function getMDtext(tabName) {
   try {
+    // console.log(`   TAB NAME IS ${tabName}`);
     const response = await fetch(`/api/getMDtext?mainSheetID=${window.expParams.mainSheetID}&tabName=${tabName}`);
+
     const data = await response.text();
     return data
 
@@ -79,25 +81,44 @@ async function createQuestionElements(questions, parentContainer) {
     
       if (choices && choices.length) {
         choices.forEach(choice => {
+          const inputLabelContainer = document.createElement('div');
+          inputLabelContainer.style.display = 'flex';
+          inputLabelContainer.style.alignItems = 'center'; // Aligns items vertically centered
+          inputLabelContainer.style.marginBottom = '5px'; // Adds spacing between each pair
+          inputLabelContainer.style.marginTop = '5px'; // Adds spacing between each pair
+          inputLabelContainer.style.marginLeft = '10px'; // Indents the options for visual distinction
+
           const radioInput = document.createElement('input');
           radioInput.setAttribute("type", "radio");
           radioInput.setAttribute("name", `question${index}`);
           radioInput.setAttribute("value", choice);
           radioInput.className = `radioInput`;
-    
+      
           const label = document.createElement('label');
           label.textContent = choice;
-    
-          inputContainer.appendChild(radioInput);
-          inputContainer.appendChild(label);
+      
+          inputLabelContainer.appendChild(radioInput);
+          inputLabelContainer.appendChild(label);
+      
+          inputContainer.appendChild(inputLabelContainer);
         });
       } else {
         // Handle the text field case
+        const textFieldContainer = document.createElement('div');
+        textFieldContainer.style.display = 'flex';
+        textFieldContainer.style.alignItems = 'center'; // Keeps the text field vertically centered
+        textFieldContainer.style.marginBottom = '5px'; // Adds spacing between each text field
+        textFieldContainer.style.marginTop = '5px'; // Adds spacing between each text field
+        textFieldContainer.style.marginLeft = '0px'; // Indents the text field for visual distinction
+
         const textField = document.createElement('input');
         textField.setAttribute("type", "text");
         textField.setAttribute("name", `question${index}`);
         textField.className = `textField`;
-        inputContainer.appendChild(textField);
+
+        textFieldContainer.appendChild(textField);
+
+        inputContainer.appendChild(textFieldContainer);
       }
     
       // Append question and input containers to the listItem

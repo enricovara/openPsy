@@ -66,7 +66,7 @@ window.addEventListener('load', async function () {
             if (window.step.toDo === "Always" || (window.step.toDo === "Once" && !window.step.status)) {             
                 if (window.step.type && stepTypeFunctions[window.step.type]) {
                 
-                    console.log(`Launching step ${window.step.number}.`);
+                    console.log(`Launching step ${window.step.number}: ${window.step.type} (v.${window.step.version}).`);
                     // call the STEP function based on step.type using the mapping object
                     await stepTypeFunctions[window.step.type]();
                     console.log(`Done with step ${window.step.number}.`);

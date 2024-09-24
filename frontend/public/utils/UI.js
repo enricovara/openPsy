@@ -215,6 +215,7 @@ function createDynProgressBar(style = {}, parentElement = null, showValue = fals
 /**
  * Updates the value of a given progress bar, optionally over a specified duration.
  * Can also complete and remove the progress bar after a specified delay.
+ * If a previous update is in progress, it will be canceled before starting the new update.
  * 
  * @param {HTMLElement} progressBar - The progress bar element to update.
  * @param {number} value - The new value of the progress bar, between 0 and 100.
@@ -224,24 +225,39 @@ function createDynProgressBar(style = {}, parentElement = null, showValue = fals
  * @returns {Promise} - A promise that resolves when the update is complete.
  */
 function updateProgressBar(progressBar, value, duration = null, removeOnComplete = false, removeDelay = 500) {
+    const UPDATE_PERIOD = 50; // ms
+
     return new Promise(resolve => {
+        // Clear any previous update interval if it exists
+        if (progressBar.updateIntervalID) {
+            clearInterval(progressBar.updateIntervalID);
+            console.log(`   cancelled previous progress bar update`);
+        }
+
+        // Log the start of the update
+        console.log(`   starting to update progress bar to ${value}`);
+
         if (duration) {
             // Update the progress bar over the specified duration
             const startValue = progressBar.value;
             const endValue = Math.min(Math.max(value, 0), 100);
-            const step = (endValue - startValue) / (duration * 1000 / 25); // 50ms update interval
+            const step = (endValue - startValue) / (duration * 1000 / UPDATE_PERIOD); // UPDATE_PERIOD update interval
 
-            const intervalID = setInterval(() => {
+            progressBar.updateIntervalID = setInterval(() => {
                 if ((step > 0 && progressBar.value >= endValue) ||
                     (step < 0 && progressBar.value <= endValue)) {
-                    clearInterval(intervalID);
+                    clearInterval(progressBar.updateIntervalID);
                     progressBar.value = endValue; // Ensure final value is set
+                    delete progressBar.updateIntervalID; // Clean up interval ID
+
                     if (removeOnComplete) {
                         setTimeout(() => {
                             progressBar.parentNode.remove();
+                            console.log(`   finished to update progress bar to ${value}`);
                             resolve();
                         }, removeDelay);
                     } else {
+                        console.log(`   finished to update progress bar to ${value}`);
                         resolve();
                     }
                 } else {
@@ -251,7 +267,7 @@ function updateProgressBar(progressBar, value, duration = null, removeOnComplete
                 if (progressBar.textContent) {
                     progressBar.textContent = `${Math.round(progressBar.value)}%`;
                 }
-            }, 25);
+            }, UPDATE_PERIOD);
         } else {
             // Immediate update
             progressBar.value = Math.min(Math.max(value, 0), 100);
@@ -259,17 +275,17 @@ function updateProgressBar(progressBar, value, duration = null, removeOnComplete
                 progressBar.textContent = `${Math.round(progressBar.value)}%`;
             }
 
-            if (value >= 100 && removeOnComplete) {
-                setTimeout(() => {
+            setTimeout(() => {
+                if (removeOnComplete && progressBar.value >= 100) {
                     progressBar.parentNode.remove();
-                    resolve();
-                }, removeDelay); // Remove after the specified delay
-            } else {
+                }
+                console.log(`   finished to update progress bar to ${value}`);
                 resolve();
-            }
+            }, 0);
         }
     });
 }
+
 
 
 /**

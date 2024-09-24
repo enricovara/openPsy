@@ -12,7 +12,7 @@ const { parseUserAgent, fancylog } = require('../utils');
  */
 async function getMDtext(mainSheetID, tabName) {
 
-    const infoSheetRange = 'B4:C17';
+    const infoSheetRange = 'B4:C30';
 
     const googleSheets = await getAuthenticatedClient();
     try {
@@ -86,7 +86,7 @@ async function fetchQuestionsChoicesAnswer(mainSheetID, formName) {
             sheetTab = "miscDemoQA!";
             headerRow = "3";
             firstRow = "5";
-            lastRow = "18";
+            lastRow = "40";
         } else {
             throw new Error(`Unknown formName: ${formName}`);
         }

@@ -117,16 +117,14 @@ async function playStim(fileUrl, fileId, fileName, mediaContainer) {
             if (isVideo || isAudio) {
                 mediaElement = isVideo ? document.createElement('video') : document.createElement('audio');
                 mediaElement.preload = 'auto'; // Set preload to auto
+
+                mediaElement.style.marginTop = "50px"; // Lowers the video on the screen
+                mediaElement.style.width = "800px"; // Set the width of the video
+                mediaElement.style.height = "450px"; // Set the height of the video            
+
                 // mediaElement.src = fileUrl; // only works with 3rd party cookies activated
                 mediaElement.src = `/drive-file/${fileId}`;
                 mediaContainer.appendChild(mediaElement); // Add new media
-
-                // Simulate playback error
-                // if (Math.random() < 0.95) {
-                //     throw new Error("This is a randomly generated error");
-                // } else {
-                //     console.log("Randomly passed!");
-                // }        
                 
                 // Wrap media loading and playback in a promise with a timeout
                 const operationPromise = new Promise(async (resolve, reject) => {
@@ -139,7 +137,9 @@ async function playStim(fileUrl, fileId, fileName, mediaContainer) {
                     }
 
                     // Wait for media to be ready
-                    mediaElement.oncanplaythrough = resolve;
+                    // mediaElement.oncanplaythrough = resolve;
+                    mediaElement.oncanplay = resolve;
+
                     //mediaElement.onerror = () => reject(new Error('Error loading media'));
                     mediaElement.onerror = () => {
                         let errorMessage = 'Error loading media';
@@ -162,25 +162,45 @@ async function playStim(fileUrl, fileId, fileName, mediaContainer) {
                                     break;
                             }
                         }
+                        console.log(errorMessage);
                         reject(new Error(errorMessage));
                     };
                     
-
                 });
 
-                // Set a timeout to reject the operation if it takes more than 3 seconds
-                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Operation timed out')), 3000));
+                // Set a timeout to reject the operation if it takes more than 20 seconds
+                const TIMEOUT_LIMIT = 20 // seconds
+                const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error(`Operation timed out after ${TIMEOUT_LIMIT} seconds`)), TIMEOUT_LIMIT * 1000));
                 // Use Promise.race to proceed with whichever promise resolves or rejects first
                 await Promise.race([operationPromise, timeoutPromise]);
 
                 // Play media and wait for it to end
+                // console.log(`...playing`);
+                // await new Promise((resolve, reject) => {
+                //     mediaElement.onended = resolve;
+                //     // mediaElement.onwaiting = () => reject(new Error('Buffering detected, playback halted'));
+                //     mediaElement.play().then(() => console.log(`Playing ${fileName}`)).catch(reject);
+                // });
+                // console.log(`Finished playing ${fileName}`);
+
                 console.log(`...playing`);
                 await new Promise((resolve, reject) => {
-                    mediaElement.onended = resolve;
-                    mediaElement.onwaiting = () => reject(new Error('Buffering detected, playback halted'));
-                    mediaElement.play().then(() => console.log(`Playing ${fileName}`)).catch(reject);
+                    mediaElement.play().then(() => {
+                        console.log(`Playing ${fileName}`);
+                        // Pause immediately to allow further loading
+                        mediaElement.pause();
+                        
+                        // Wait for 2 seconds before resuming playback
+                        setTimeout(() => {
+                            mediaElement.play().then(() => {
+                                console.log(`Resuming playback after preloading`);
+                                mediaElement.onended = resolve;
+                            }).catch(reject);
+                        }, 4000); // 2000 milliseconds = 2 seconds
+
+                    }).catch(reject);
                 });
-                console.log(`Finished playing ${fileName}`);
+
 
                 if (audioCtx.outputLatency) {
                     console.log(`Estimated output latency: ${audioCtx.outputLatency} seconds`);

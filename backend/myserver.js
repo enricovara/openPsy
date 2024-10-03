@@ -26,10 +26,17 @@ app.use(express.static(path.join(__dirname, '../frontend/public')));
 
 // Endpoint for fetching base experiment parameters and language strings
 app.post('/api/doSetupAndLogin', async (req, res) => {
+    console.log("in doSetupAndLogin");
+
     try {
         const { mainSheetID, prolificID, language } = req.body; // Extract mainSheetID, prolificID, and language from the request body
         const userAgent = req.headers['user-agent'];
+        console.log('Request body:', req.body);
+
         const result = await doSetupAndLogin(mainSheetID, prolificID, userAgent, language); // result contains expParams and STR
+        console.log('Result from doSetupAndLogin:', result);
+
+        //console.log("Window.STR:", window.STR);
         res.json(result); // Send expParams and STR
     } catch (error) {
         res.status(500).json({ message: 'Could not fetch experiment parameters and language strings', error });
@@ -154,7 +161,11 @@ app.get('/api/staircaseBlock', async (req, res) => {
         // Fetch block parameters and drive folder contents
         const staircaseParams = await fetchStaircaseParams(mainSheetID, version);
 
-        res.json(staircaseParams); // Respond with all block parameters and drive folder contents
+        // Log the JSON string to ensure it's valid
+        console.log('Sending JSON response:', JSON.stringify(staircaseParams));
+        
+        res.status(200).json(staircaseParams); // Respond with all block parameters and drive folder contents
+    
     } catch (error) {
         res.status(500).json({ message: 'Error fetching staircase parameters and media links', error: error.message });
     }
@@ -304,8 +315,6 @@ app.get('/random-file-from-folder/:folderID', async (req, res) => {
         res.status(500).json({ message: 'Error retrieving file from folder', error: error.message });
     }
 });
-
-
 
 
 // START THE SERVER ///////////////////////////////////////////////////////////

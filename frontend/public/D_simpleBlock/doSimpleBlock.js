@@ -19,7 +19,6 @@ async function doSimpleBlock() {
 
     const blockResponses = {};
     let blockParams;
-
     blockParams = await fetchBlockParams();
     if (!blockParams.driveFolderContents) {
         const bodyText = `${window.STR.noBlocksAvailable}.<br>${window.STR.clickToReturnToProlific}.<br>${window.STR.yourCompletionCodeIs} <strong>${window.prolificCheckpointCode}</strong>`;

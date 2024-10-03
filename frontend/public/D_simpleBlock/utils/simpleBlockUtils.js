@@ -1,9 +1,5 @@
 // simpleBlockUtils.js
 
-
-// Media playback and capturing response
-
-
 async function fetchBlockParams() {
 
     try {
@@ -39,7 +35,6 @@ async function fetchBlockParams() {
 
 }
 
-
 async function showMessageAndAwaitUserAction(messageBeforeBlock) {
 
     let initialMessageContainer = createDynContainer('initialMessageContainer', null, style = {justifyContent: 'center',});
@@ -64,8 +59,6 @@ async function showMessageAndAwaitUserAction(messageBeforeBlock) {
 
     await okMessage;
 }
-
-
 
 async function playMediaAndCaptureResponse(blockParams, fileName, fileId, fileUrl, trialsContainer) {
 
@@ -227,8 +220,6 @@ async function playStim(fileUrl, fileId, fileName, mediaContainer) {
     }
 }
 
-
-
 async function processAndSendAllBlockResponses(sheetTab, blockName, blockResponses) {
   let allRowData = [];
 
@@ -260,8 +251,6 @@ async function processAndSendAllBlockResponses(sheetTab, blockName, blockRespons
   }
 }
 
-
-
 async function checkinOrConfirmBlock(reservedCell, actionType) {
     try {
         const mainSheetID = window.expParams.mainSheetID;
@@ -290,7 +279,6 @@ async function checkinOrConfirmBlock(reservedCell, actionType) {
         await redirectHandler(`Error ${window.step.number}.1.5`, `${window.STR.pleaseEmailErrorCode}<br>${error}`, window.prolificCheckpointCode, allowRetry=true);
     }
 }
-
 
 async function presentEndOfBlockOptions(messageAfterBlock) {
 

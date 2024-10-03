@@ -34,7 +34,7 @@ window.addEventListener('load', async function () {
         //"CheckAttention": doCheckAttention,
         "instructionsBreak": doInstrBreak,
         "simpleBlock": doSimpleBlock,
-        "staircaseBlock": doStaircase,
+        "staircase": doStaircase,
     };
 
 
@@ -53,7 +53,7 @@ window.addEventListener('load', async function () {
             
         window.step = {...window.expParams.stepsParams[step]}; // shallow copy
         window.step.number = step;
-    
+
         try{
             
             // EXTRACT STEP VERSION NUMBER
@@ -64,6 +64,7 @@ window.addEventListener('load', async function () {
         
             // If step exists and DO is ALWAYS, or if not done and do is ONCE:
             if (window.step.toDo === "Always" || (window.step.toDo === "Once" && !window.step.status)) {             
+            
                 if (window.step.type && stepTypeFunctions[window.step.type]) {
                 
                     console.log(`Launching step ${window.step.number}: ${window.step.type} (v.${window.step.version}).`);
@@ -72,10 +73,14 @@ window.addEventListener('load', async function () {
                     console.log(`Done with step ${window.step.number}.`);
                     
                 } else {
+                    console.log("window.step,type:", window.step.type);
+                    console.log("stepTypeFunctions", stepTypeFunctions[window.step.type]);
+                
                     // skip if already done or not to be done
                     throw new Error(`Step function not defined for step ${window.step.number}. window.step.type: ${window.step.type}, stepTypeFunctions[window.step.type]: ${stepTypeFunctions[window.step.type]}`);
                 }
             } else {
+                
                 // skip if already done or not to be done
                 console.log(`Skipping step ${window.step.number}.`);
             }

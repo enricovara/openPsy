@@ -81,13 +81,12 @@ async function getBaseExpParams() {
     console.log(`And getting strings for language: ${window.STR.language}`);
 
     try {
-
+        console.log("in getbase exp and params")
         const data = await querySetupLogin()
         //logObject(data);
         window.expParams.title = data.expParams.expTitle;
         window.expParams.stepsParams = data.expParams.stepsParams;
         window.prolificErrorCode = data.expParams.prolificErrorCode;
-        
         window.STR = data.STR; // Assign the STR object to a global variable
                         
     } catch (error) {
@@ -128,6 +127,7 @@ function parseQueryParams() {
 
 
 async function querySetupLogin() {
+    console.log("in function querySetupLogin");
 
     const response = await fetch("/api/doSetupAndLogin", {
         method: 'POST',
@@ -147,7 +147,8 @@ async function querySetupLogin() {
 
     const data = await response.json();
     return data;
-}
+} 
+
 
 function logObject(data, indent = '') {
     console.log(`Found:`);

@@ -1,3 +1,4 @@
+const { callOnce } = require("nuxt/app");
 
 /**
  * Dynamically creates a new container (div element) with default and additional custom styles.
@@ -36,6 +37,39 @@ function createDynContainer(containerID, parentElement = null, style = {}) {
 
     // Return the created container
     return newContainer;
+}
+
+function createDynSubContainer(containerID, parentElement = null, style = {}) {
+        // Create a container for the elements
+        let newContainer = document.createElement('div');
+        newContainer.id = containerID;
+    
+        // Define default styles for the container
+        const defaultStyle = {
+            padding: '10px',
+            boxSizing: 'border-box',
+            justifyContent: 'flex-start',
+            overflow: 'auto',
+            backgroundColor: '#f0f0f0',
+            padding: '20px',
+            borderRadius: '8px',
+            marginTop: '1rem',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            marginRight: '1rem', // Add margin to separate from the other container
+            height: 'auto',
+            width: 'calc(33% - 10px)',
+        };
+    
+        // Apply default styles and then override with provided styles
+        Object.assign(newContainer.style, defaultStyle, style);
+    
+        // Append the container to the specified parent element or the document body if no parent is specified
+        (parentElement || document.body).appendChild(newContainer);
+    
+        // Return the created container
+        return newContainer;
 }
 
 

@@ -94,7 +94,7 @@ async function fetchBlockParams(mainSheetID, prolificID, version) {
             if (!blockMediaAddressList[i] || (Array.isArray(blockMediaAddressList[i]) && blockMediaAddressList[i].length === 0)) {
                 continue; // Skip if no media address is available for this row
             }
-            fancylog.log(blockMediaAddressList[i])
+            //fancylog.log(blockMediaAddressList[i])
             if (!completedBlocksList || !completedBlocksList[i]) {
                 // If there's no corresponding entry in completedBlocksList, it's equivalent to 0 completed blocks
                 selectedIndex = i;
@@ -392,7 +392,7 @@ function isMoreThanOneHourOld(dateTime, now) {
 async function fetchDriveFolderContents(folderUrl) {
     const drive = await getAuthenticatedDriveClient();
     const folderId = folderUrl.split('/').pop();
-    fancylog.log(folderId);
+    //fancylog.log(folderId);
     
     try {
         let pageToken = null;

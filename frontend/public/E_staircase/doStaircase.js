@@ -1,6 +1,14 @@
 
+const selectedAnswers = {
+    color: null,
+    letter: null,
+    number: null,
+};
+
 
 async function doStaircase() {
+    console.log("Executing staircaseBlock");
+    const blockResponses = {};
 
     let blockContainer = createDynContainer('blockContainer', null, style = {alignItems: 'start'});
 
@@ -19,9 +27,14 @@ async function doStaircase() {
         false, // removeOnComplete
     );
 
-    let staircaseParams;
-
-    staircaseParams = await fetchStaircaseParams();
+    let staircaseParams = await fetchStaircaseParams();
+    
+    console.log("in doStairCase(), after fetchStaircaseParams()", staircaseParams);
+    
+/*     if (!staircaseParams.driveFolderContents) {
+        const bodyText = `${window.STR.noBlocksAvailable}.<br>${window.STR.clickToReturnToProlific}.<br>${window.STR.yourCompletionCodeIs} <strong>${window.prolificCheckpointCode}</strong>`;
+        await redirectHandler(window.STR.thankYou, bodyText, window.prolificCheckpointCode);
+    } */
 
     await updateProgressBar(
         myProgressBar, // progressBar
@@ -33,26 +46,47 @@ async function doStaircase() {
 
     blockContainer.remove();
 
+    //Before Starting staircaseBlock, get confirmation from user
     await showMessageAndAwaitUserAction(staircaseParams.messageBeforeBlock);
+    console.log("numStairs", staircaseParams.numOfStairs);
 
-    let variableValues = [];    
-    for (let SCidx = 0; SCidx < staircaseParams.numStairs; SCidx++) {
-        variableValues[SCidx] = await executeStaircase(staircaseParams);
-        await showMessageAndAwaitUserAction(staircaseParams.messageBetweenStairs);
+    //we start with audio 1, block is updated if successfull response 
+    let block = 0;   
+
+    //numOfStairs: how many files are presented to each participant --> 10 files  
+    for (let i = 0; i < staircaseParams.numOfStairs; i++) {
+        console.log("in for loop, index", i);
+        
+        //blockResponses[i] = [block, isCorrect, selectedAnswer]
+        blockResponses[i] = await executeStaircaseBlock (staircaseParams, block);
+        console.log("in doStaircase: blockResponses[i]: ", blockResponses[i]);
+    
+        
+        //await showMessageAndAwaitUserAction(staircaseParams.messageBetweenStairs[0]);
+        await updateProgressBar(
+            myProgressBar, // progressBar
+            (i+1)/staircaseParams.numOfStairs, // value
+            0.2, // duration in seconds
+            false, // removeOnComplete
+        );
+
+        await updateParticipantLog();
+        await processAndSendStaircaseVal("results5", block, blockResponses[i]);
+
+        block = blockResponses[i][0];
+        console.log("after processAndSendAllBlockResponses");
+
     }
-
-    let meanValue = Math.round(variableValues.slice(-staircaseParams.numSaverage).reduce((acc, val) => acc + val, 0) / N);
-
-    updateParticipantLog();
     window.prolificCheckpointCode = window.step.completionCode;
     await presentEndOfBlockOptions(staircaseParams.messageAfterBlock);
 
 }
 
-async function executeStaircase(staircaseParams) {
+async function executeStaircaseBlock(staircaseParams, block){
+    
+    console.log("in executeStaircaseBlock:", staircaseParams);
 
     let trialsContainer = createDynContainer('trialsContainer', null, style = {alignItems: 'start'});
-
     let trialsFooter = createDynFooter(parentElement = trialsContainer);
 
     let myProgressBar = createDynProgressBar(
@@ -61,73 +95,41 @@ async function executeStaircase(staircaseParams) {
         false // showValue // Not showing the progress value
     );
 
-    // determine starting val
-    let minVal = Math.min(...staircaseParams.startValueRange);
-    let maxVal = Math.max(...staircaseParams.startValueRange);
-    let currentVal = (minVal === maxVal) ? minVal : Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
-
-    let allVals = [];
-    let reversalCount = 0;
-    let reversalVals = [];    
-    let direction = 0;
-    let correct = null;
-    while (reversalCount < staircaseParams.numReversals) {
-
-        allVals.push(currentVal);
-        correct = await playMediaAndGetOutcome(staircaseParams, currentVal, trialsContainer);
+    let fileUrl = staircaseParams.blockAdresses[block][0]; // This is the drive download link (fails in frontend without third party cookies)
+    console.log("in executeStaircaseBlock, fileUrl:", fileUrl);
     
-        console.log("correct", correct)
-        if (correct) {
-            newVal = currentVal + staircaseParams.stepCorrect;
-        } else {
-            newVal = currentVal + staircaseParams.stepIncorrect;
-        }
-    
-        let newDirection = Math.sign(newVal - currentVal);
-        if (direction !== 0 && newDirection !== direction) {
-            reversalCount += 1;
-            reversalVals.push(currentVal);
-            await updateProgressBar(
-                myProgressBar, // progressBar
-                100*(reversalCount)/staircaseParams.numReversals, // value
-                0.2, // duration in seconds
-                false, // removeOnComplete
-            );
-        }
+    let blockResponse = await playMediaAndGetOutcome(staircaseParams, fileUrl);
+    console.log("BlockResponse: ", blockResponse);
 
-        direction = newDirection;
-        currentVal = newVal;
-        
+    if(blockResponse[1] == true){
+        block = block + 1;
+        console.log("in if: block:", block);
+        await showMessageAndAwaitUserAction(staircaseParams.messageBetweenStairs[1]);
+
     }
+    else{
+        await showMessageAndAwaitUserAction(staircaseParams.messageBetweenStairs[2]);
+    }
+    let result = [
+        block, 
+        blockResponse[0],
+        blockResponse[1],
+        blockResponse[2],
+    ]
 
-    console.log(reversalVals)
-    let meanR = Math.round(reversalVals.slice(-staircaseParams.numRaverage).reduce((acc, val) => acc + val, 0) / N);
+    console.log("in executeStaircaseBlock: value to be returned: " , result);
+    console.log("Block to be displayed: ", block);
 
-    await updateProgressBar(
+   //blockResponses[trialNumber++] = { fileName, blockName: blockParams.blockName, trialResponse };
+        
+/*     await updateProgressBar(
         myProgressBar, // progressBar
-        0, // value
-        0.1, // duration in seconds
+        100*(trialNumber)/numberOfTrials, // value
+        0.2, // duration in seconds
         false, // removeOnComplete
-    );
+    ); */
+    //}
 
-    updateProgressBar(
-        myProgressBar, // progressBar
-        90, // value
-        3, // duration in seconds
-        false, // removeOnComplete
-    );
-
-    !!!!!!!!!!
-    //await processAndSendAllStaircaseVals("results", blockParams.blockName, blockResponses);
-    
-    await updateProgressBar(
-        myProgressBar, // progressBar
-        100, // value
-        0.15, // duration
-        true, // removeOnComplete
-        150 // removeDelay
-    );
-
-    trialsContainer.remove()
-
+    //return block;
+    return result;
 }

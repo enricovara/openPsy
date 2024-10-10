@@ -1,9 +1,19 @@
 // savingUtils.js
 
-
-// Function for posting datetime to participant log
+/**
+ * Updates the participant log with the current datetime or a ban timestamp.
+ *
+ * This function records the current UTC datetime in the participant's log by sending a POST request to the `/api/updateStepWithText` endpoint.
+ * If the `ban` parameter is set to `true`, the function logs the timestamp as a ban event.
+ * In case of an error during the update process, the function reports the error to the server and redirects the user with an error code.
+ *
+ * @async
+ * @function updateParticipantLog
+ * @param {boolean} [ban=false] - Indicates whether to log a ban event instead of a regular timestamp.
+ * @returns {Promise<void>} A promise that resolves when the log is successfully updated or rejects if an error occurs.
+ * @throws Will throw an error if the network request fails.
+ */
 async function updateParticipantLog(ban = false) {
-
     let datetime_text = new Date().toLocaleString('en-GB', { timeZone: 'UTC' }).replace(/,/g, '');
     if (ban) {
         datetime_text = "banned on " + datetime_text;
@@ -32,6 +42,54 @@ async function updateParticipantLog(ban = false) {
         await redirectHandler(`Error ${window.step.number}.1.0`, `${window.STR.pleaseEmailErrorCode}<br>${error}`, window.prolificCheckpointCode, allowRetry=true);
     }
 }
+
+/**
+ * Processes all block responses and sends them to the specified Google Sheet tab.
+ *
+ * This function iterates through each block in `blockResponses`, flattens the trial responses, and constructs row data.
+ * After processing all blocks, it updates the Google Sheet by calling the `generalNewLineUpdate` function.
+ * If an error occurs during the update, the function reports the error to the server and redirects the user with an error code.
+ *
+ * @async
+ * @function processAndSendAllBlockResponses
+ * @param {string} sheetTab - The name of the Google Sheet tab where the data should be updated.
+ * @param {string} blockName - The name of the block being processed.
+ * @param {Object.<string, Object>} blockResponses - An object containing responses for each block.
+ *        Each block should have a `fileName` property and a `trialResponse` array with trial data.
+ * @returns {Promise<void>} A promise that resolves when all block responses are processed and sent, or rejects if an error occurs.
+ * @throws Will throw an error if the network request to update the Google Sheet fails.
+ */
+async function processAndSendAllBlockResponses(sheetTab, blockName, blockResponses) {
+    let allRowData = [];
+  
+    // Loop through each block in blockResponses (probably only one?)
+    for (const [index, block] of Object.entries(blockResponses)) {
+        // Start with the blockName and filename
+        let rowData = [blockName, block.fileName];
+  
+        // Flatten each trial's data in the trialResponse
+        block.trialResponse.forEach(trial => {
+            Object.values(trial).forEach(value => {
+            rowData.push(`${value}`); // appending only the value of each field
+            });
+        });
+    
+        // Add the constructed rowData to the allRowData list
+        allRowData.push(rowData);
+    }
+  
+    // Call the function to update the Google Sheet with all row data at once
+    try {
+      await generalNewLineUpdate(sheetTab, allRowData, window.step.version);
+    } catch (error) {
+      reportErrorToServer(error);
+      console.error('Error processing all block responses:', error);
+      console.log(`   prolificID and mainSheetID:`, window.participant.prolificID, window.expParams.mainSheetID);
+      console.log(`   Redirecting user with error code`);
+      await redirectHandler(`Error ${window.step.number}.1.4`, `${window.STR.pleaseEmailErrorCode}<br>${error}`, window.prolificCheckpointCode, allowRetry=true);
+    }
+}
+
 
 
 /**

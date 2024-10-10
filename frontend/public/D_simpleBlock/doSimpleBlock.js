@@ -17,7 +17,6 @@ async function doSimpleBlock() {
     //     false, // removeOnComplete
     // );
 
-    const blockResponses = {};
     let blockParams;
     blockParams = await fetchBlockParams();
     if (!blockParams.driveFolderContents) {
@@ -35,15 +34,64 @@ async function doSimpleBlock() {
 
     blockContainer.remove();
 
-    await showMessageAndAwaitUserAction(blockParams.messageBeforeBlock);
+    // Define button configurations for the "Before Block" message
+    const beforeBlockButtons = [
+        {
+            text: window.STR.messageBeforeBlockButtonText,
+            id: 'okButton'
+        }
+    ];
 
-    await executeTrials(blockParams, blockResponses);
+    // Define button configurations for the "After Block" message, with conditional inclusion of the "Stop Here" button
+    const afterBlockButtons = [
+        {
+            text: window.STR.continueAfterBlockButtonText,
+            id: 'continueButton'
+        }
+    ];
 
-    await presentEndOfBlockOptions(blockParams.messageAfterBlock);
+    // Conditionally add the "Stop Here" button if the parameter is set
+    if (blockParams.giveEndAfterBlockOption) {
+        afterBlockButtons.push({
+            text: window.STR.stopHereButtonText,
+            id: 'stopHereButton',
+            action: async () => {
+                const bodyText = `
+                    ${window.STR.experimentCompleted}.<br>
+                    ${window.STR.clickToReturnToProlific}.<br>
+                    ${window.STR.yourCompletionCodeIs} <strong>${window.step.completionCode}</strong>
+                `;
+                await redirectHandler(
+                    window.STR.thankYou,
+                    bodyText,
+                    window.prolificCheckpointCode
+                );
+            }
+        });
+    }
+
+    // Show the "Before Block" message if applicable
+    if (blockParams.messageBeforeBlock !== undefined) {
+        await showMessageWithOptions(blockParams.messageBeforeBlock, {
+            buttons: beforeBlockButtons
+        });
+    }
+
+    // Execute the block
+    await executeBlock(blockParams);
+
+    // Show the "After Block" message if applicable
+    if (blockParams.messageAfterBlock !== undefined) {
+        await showMessageWithOptions(blockParams.messageAfterBlock, {
+            buttons: afterBlockButtons
+        });
+    }
+
+
 }
 
 
-async function executeTrials(blockParams, blockResponses) {
+async function executeBlock(blockParams) {
 
     let trialsContainer = createDynContainer('trialsContainer', null, style = {alignItems: 'start'});
 
@@ -57,6 +105,7 @@ async function executeTrials(blockParams, blockResponses) {
 
     let numberOfTrials = Object.keys(blockParams.driveFolderContents).length;
     let trialNumber = 0;
+    let blockResponses = {};
     for (const fileName in blockParams.driveFolderContents) {
 
         const fileUrl = blockParams.driveFolderContents[fileName].downloadLink; // This is the drive download link (fails in frontend without third party cookies)

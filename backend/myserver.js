@@ -10,7 +10,8 @@ const { getAuthenticatedDriveClient } = require('./googleSheetHelpers/00_googleS
 const { doSetupAndLogin } = require('./googleSheetHelpers/01_setupGSO');
 const { getMDtext, fetchQuestionsChoicesAnswer } = require('./googleSheetHelpers/02_formsGSO');
 const { fetchBlockParams, checkinOrConfirmBlock, clearOldCheckouts} = require('./googleSheetHelpers/03_simpleBlockGSO');
-const { fetchStaircaseParams } = require('./googleSheetHelpers/04_staircaseGSO');
+const { fetchStaircaseParams, saveStaircaseOutcome } = require('./googleSheetHelpers/04_staircaseGSO');
+const { fetchPostStairParams } = require('./googleSheetHelpers/04b_postStairGSO');
 const { updateStepWithText, generalNewLineUpdate} = require('./googleSheetHelpers/10_writingGSO');
 
 const { parseUserAgent, fancylog } = require('./utils');
@@ -170,6 +171,41 @@ app.get('/api/staircaseBlock', async (req, res) => {
         res.status(500).json({ message: 'Error fetching staircase parameters and media links', error: error.message });
     }
 });
+
+// Endpoint for saving staircase outcome
+app.post('/api/saveStaircaseOutcome', async (req, res) => {
+    try {
+        const { mainSheetID, version, prolificID, outcome } = req.body; // Extract the parameters from the request body
+        await saveStaircaseOutcome(mainSheetID, version, prolificID, outcome);
+        res.status(200).json({ message: 'Staircase outcome saved successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Could not save staircase outcome', error: error.message });
+    }
+});
+
+// Endpoint for fetching postStaircaseBlock parameters and media links
+app.get('/api/postStair', async (req, res) => {
+    try {
+        const mainSheetID = req.query.mainSheetID; // Extract the mainSheetID from the query parameters
+        const prolificID = req.query.prolificID;   // Extract the Prolific ID from the query parameters
+        const version = req.query.version;         // Extract the block version from the query parameters (optional)
+
+        // Fetch block parameters and drive folder contents
+        const postStairParams = await fetchPostStairParams(mainSheetID, prolificID, version);
+
+        // Log the JSON string to ensure it's valid
+        console.log('Sending JSON response:', JSON.stringify(postStairParams));
+
+        res.status(200).json(postStairParams); // Respond with all block parameters and drive folder contents
+
+    } catch (error) {
+        res.status(500).json({ 
+            message: 'Error fetching post-staircase parameters and media links', 
+            error: error.message 
+        });
+    }
+});
+
 
 
 // ERROR LOGGING ///////////////////////////////////////////////////////////

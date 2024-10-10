@@ -34,7 +34,8 @@ window.addEventListener('load', async function () {
         //"CheckAttention": doCheckAttention,
         "instructionsBreak": doInstrBreak,
         "simpleBlock": doSimpleBlock,
-        "staircase": doStaircase,
+        "staircaseBlock": doStaircase,
+        "postStairBlock": doPostStairBlock,
     };
 
 

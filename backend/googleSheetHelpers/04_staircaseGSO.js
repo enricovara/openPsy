@@ -1,49 +1,41 @@
-// 04_staircaseGSO.js
+// 04b_staircaseGSO.js
 
 const { getAuthenticatedClient, getAuthenticatedDriveClient } = require('./00_googleSheetAuth');
 
 const { parseUserAgent, fancylog } = require('../utils');
-const { file } = require('googleapis/build/src/apis/file');
-
 
 /**
  * Fetches block parameters from the 'staircaseBlock' tab of the main sheet.
  * 
  * @param {string} mainSheetID - The ID of the main Google Sheets spreadsheet.
- * @param {string} prolificID - The Prolific ID of the participant.
  * @returns {Promise<Object>} - An object containing block parameters.
  */
-async function fetchStaircaseParams(mainSheetID, prolificID, version) {
+async function fetchStaircaseParams(mainSheetID, version) {
     const googleSheets = await getAuthenticatedClient();
     
-    //const FIRST_DATA_ROW = 18;
-    //const FIRST_DATA_COLUMN_INDEX = 4; //D
+    const FIRST_DATA_ROW = 20;
     
     // Define constants for the hardcoded ranges
-    const sheetTab = `staircase${version ? version : ''}!`;
+    
+    const sheetTab = `staircaseBlock${version ? version : ''}!`;
     
     fancylog.log(sheetTab)
 
     const RANGES = [
-
-        `${sheetTab}D4`,                    // MESSAGE_BEFORE_BLOCK_RANGE [0]
-        `${sheetTab}D5`,                    // MESSAGE_AFTER_BLOCK_RANGE  [1]
-        `${sheetTab}D6`,                    // Number of stairs           [2]
-        `${sheetTab}C11:C13`,               // MESSAGE_BETWEEN STAIRS     [3]
-        `${sheetTab}E11:F11`,               // Answers yes no, later GRID [4]
-        
-        `${sheetTab}C19:C28`,               // BLOCK_MEDIA_ADDRESS_RANGE  [5]
-        `${sheetTab}B19:B28`,               // BLOCK_NAMES_RANGE 1-10     [6] 
-
-        `${sheetTab}E12:H12`,               // Answers colors             [7]
-        `${sheetTab}E13:H13`,               // Answers letters            [8]
-        `${sheetTab}E14:H14`,               // Answers numbers            [9]
-
-        `${sheetTab}C38:D40`,               // Filename with answers     [10]
-
+        `${sheetTab}D2`,                    // MESSAGE_BEFORE_BLOCK_RANGE
+        `${sheetTab}D3`,                    // MESSAGE_AFTER_EACH_STAIR_RANGE
+        `${sheetTab}D4`,                    // MESSAGE_AFTER_BLOCK_RANGE
+        `${sheetTab}D6:H6`,                 // STARTPOINTS_RANGE
+        `${sheetTab}D7`,                    // REVERSALS_RANGE
+        `${sheetTab}D9`,                    // RANDOMISE_WITHIN_BLOCKS_RANGE
+        `${sheetTab}D11`,                   // RESPONSE_TYPE
+        `${sheetTab}D13:H16`,               // QUESTIONS_RANGE
+        `${sheetTab}D17`,                   // QUESTIONS_PRESENTATION_LOGIC
+        `${sheetTab}C${FIRST_DATA_ROW}:C${FIRST_DATA_ROW+19}`,  // BLOCK_MEDIA_ADDRESS_RANGE
+        `${sheetTab}B${FIRST_DATA_ROW}:B${FIRST_DATA_ROW+19}`   // BLOCK_NAMES_RANGE
     ];
     
-    //fancylog.log(RANGES)
+    fancylog.log(RANGES)
 
     try {
         // Fetch all data with a single batchGet call
@@ -53,65 +45,114 @@ async function fetchStaircaseParams(mainSheetID, prolificID, version) {
         });
 
         const sheetData = response.data.valueRanges;
+        fancylog.log(`sheetData: ${JSON.stringify(sheetData, null, 2)}`);
 
-        fancylog.log(`sheetData: ${JSON.stringify(sheetData, null, 2)}`)
 
         // Extract data from responses
-        const numOfStairs = parseInt(sheetData[2].values[0]);
-        const question = sheetData[3].values[0];
-        const answers = sheetData[4].values[0];
-        const blockAdresses = sheetData[5].values;
-        const blockNumber = sheetData[6].values;
-
         const messageBeforeBlock = sheetData[0]?.values[0][0] ?? undefined;
-        const messageBetweenStairs = sheetData[3].values;
-        const messageAfterBlock = sheetData[1]?.values[0][0] ?? undefined; 
+        const messageAfterEachStair = sheetData[1]?.values[0][0] ?? undefined;   
+        const messageAfterBlock = sheetData[2]?.values[0][0] ?? undefined;   
+        const startPoints = sheetData[3].values;
+        const reversals = sheetData[4].values[0][0];
+     
+        const randomiseTrialsWithinBlock = sheetData[5]?.values[0][0] ?? undefined;        
         
-        const answersGridColors = sheetData[7].values[0];
-        const answersGridLetters = sheetData[8].values[0];
-        const answersGridNumbers = sheetData[9].values[0];
+        fancylog.log(`startPoints: ${startPoints}`);
+        fancylog.log(`reversals: ${reversals}`);
 
-        const fileNamesAndAnswers = sheetData[10].values.map(row => ({
-            fileName: row[0],
-            answer: row[1]
-        }));
+        // Fetching the response type (GRID, questions, etc)
+        const responseType = sheetData[6].values[0][0];      
+        
+        // Fetching and processing the questions and answers
+        const questionsData = sheetData[7].values;
+        const questionsAndAnswers = questionsData ? questionsData.reduce((acc, row) => {
+            const question = row[0];
+            if (question) { // Check if the question is not falsy
+                const answers = row.slice(1).filter(answer => answer); // Filter out falsy answers
+                acc.push({ question, answers });
+            }
+            return acc;
+        }, []) : undefined;
+        
+        const questionsPresentationLogic = sheetData[8].values[0][0];
 
-        fancylog.log(`numOfStars: ${numOfStairs}`)
-        fancylog.log(`question: ${question}`);
-        fancylog.log(`answers: ${answers}`);
-        fancylog.log(`adresses of blocks: ${blockAdresses}`);
-        fancylog.log(`number of blocks: ${blockNumber}`);
+        fancylog.log(`Questions and Answers: ${JSON.stringify(questionsAndAnswers, null, 2)}`);
+        fancylog.log(`Questions presentation logic: ${questionsPresentationLogic}`);
 
-        fancylog.log(`message before block: ${messageBeforeBlock}`);
-        fancylog.log(`messages inbetween stairs: ${messageBetweenStairs}`);
-        fancylog.log(`message after block: ${messageAfterBlock}`);
+        const blockMediaAddressList = sheetData[9].values;
+        const blockNamesList = sheetData[10].values;
+        
+        fancylog.log(blockMediaAddressList)
+        fancylog.log(blockNamesList)
 
-        fancylog.log(`GRID colors: ${answersGridColors}`);
-        fancylog.log(`GRID letters: ${answersGridLetters}`);
-        fancylog.log(`GRID numbers: ${answersGridNumbers}`);
+        const blocks = [];
 
-        fancylog.log(`filename & answers: ${fileNamesAndAnswers}`);
+        for (let i = 0; i < blockNamesList.length; i++) {
+            const blockNameRow = blockNamesList[i];
+            const blockMediaAddressRow = blockMediaAddressList[i];
+        
+            // Check if both rows are valid
+            if (!blockNameRow || !blockMediaAddressRow) {
+                continue; // Skip if either is missing
+            }
+        
+            const blockName = blockNameRow[0];
+            const blockMediaAddress = blockMediaAddressRow[0];
+        
+            // Skip if blockName or blockMediaAddress is empty
+            if (!blockName || !blockMediaAddress) {
+                continue;
+            }
+        
+            fancylog.log(`Processing block: ${blockName}, media address: ${blockMediaAddress}`);
+        
+            // Fetch drive folder contents for this block
+            let driveFolderContents = await fetchDriveFolderContents(blockMediaAddress);
+        
+            // Randomize if needed
+            if (['yes', 'y'].includes(randomiseTrialsWithinBlock.toLowerCase())) {
+                fancylog.log(`Randomizing trials for block "${blockName}"`);
+                const fileMapArray = Object.entries(driveFolderContents);
+                const shuffledFileMapArray = shuffleArray(fileMapArray);
+                driveFolderContents = shuffledFileMapArray.reduce((acc, [key, value]) => {
+                    acc[key] = value;
+                    return acc;
+                }, {});
+            } else {
+                fancylog.log(`Arranging trials alphabetically for block "${blockName}"`);
+                const fileMapArray = Object.entries(driveFolderContents);
+                const sortedFileMapArray = fileMapArray.sort((a, b) => a[0].localeCompare(b[0]));
+                driveFolderContents = sortedFileMapArray.reduce((acc, [key, value]) => {
+                    acc[key] = value;
+                    return acc;
+                }, {});
+            }
+        
+            fancylog.log(`Order of driveFolderContents for block "${blockName}":`, Object.keys(driveFolderContents).join(", "));
+        
+            // Add this block's data to the blocks array
+            blocks.push({
+                blockName, // this is an int and is if the difficulty level
+                blockMediaAddress,
+                driveFolderContents,
+            });
+        }
 
         // Create the result object
-        const result = {
-            numOfStairs,
-            question,
-            answers,
-            blockAdresses,
-            blockNumber,
+        return {
             messageBeforeBlock,
-            messageBetweenStairs,
+            messageAfterEachStair,
             messageAfterBlock,
-            answersGridColors,
-            answersGridNumbers,
-            answersGridLetters,
-            fileNamesAndAnswers
+            startPoints,
+            reversals,
+            responseType,
+            questionsAndAnswers,
+            questionsPresentationLogic,
+            blocks,
         };
         
-        return result;
-        
     } catch (error) {
-        fancylog.error("Error fetching staircase parameters from Google Sheets:", error);
+        fancylog.error("Error fetching block parameters from Google Sheets:", error);
         throw error; // Rethrow the error to be handled by the caller.
     }
 }
@@ -140,222 +181,45 @@ function shuffleArray(array) {
 
 
 /**
- * Checks out a block by updating its status in the Google Sheet.
- * 
- * @param {string} mainSheetID - The ID of the main Google Sheets spreadsheet.
- * @param {number} reservedCell - The address of the reservation in the sheet.
- * @param {string} prolificID - The Prolific ID of the participant.
- */
-async function checkoutBlock(mainSheetID, sheetTab, reservedCell, prolificID) {
-    try {
-        const googleSheets = await getAuthenticatedClient();
-        const datetime_text = new Date().toLocaleString('en-GB', { timeZone: 'UTC' }).replace(/,/g, '');
-        const checkOutRequest = {
-            spreadsheetId: mainSheetID,
-            range: `${sheetTab}${reservedCell}`,
-            valueInputOption: 'RAW', // Use USER_ENTERED if you want to allow formulas, etc.
-            resource: {
-                values: [[`checked out by ${prolificID} ${datetime_text}`]]
-            }
-        };
-        
-        await googleSheets.spreadsheets.values.update(checkOutRequest);
-    
-    } catch (error) {
-        fancylog.error("Error posting to sheet:", error);
-        throw error; // Rethrow the error to be handled by the caller.
-    }
-}
-
-
-/**
- * Checks in a block by clearing its status in the Google Sheet.
- * 
- * @param {string} mainSheetID - The ID of the main Google Sheets spreadsheet.
- * @param {number} reservedCell - The address of the reservation in the sheet.
- */
-async function checkinOrConfirmBlock(mainSheetID, version, prolificID, reservedCell, actionType) {
-    try {
-        const googleSheets = await getAuthenticatedClient();
-        let updateString;
-        if (actionType === "checkin") {
-            updateString = ``
-        } else if (actionType === "confirm") {
-            updateString = `${prolificID}`
-        } else {
-            updateString = `ERROR`
-        }
-        const sheetTab = `simpleBlock${version ? version : ''}!`;
-        const checkInRequest = {
-            spreadsheetId: mainSheetID,
-            range: `${sheetTab}${reservedCell}`,
-            valueInputOption: 'RAW', // Use USER_ENTERED if you want to allow formulas, etc.
-            resource: {
-                values: [[updateString]] // Clearing the cell by setting it to an empty string
-            }
-        };
-
-        await googleSheets.spreadsheets.values.update(checkInRequest);
-
-    
-    } catch (error) {
-        fancylog.error("Error posting to sheet:", error);
-        throw error; // Rethrow the error to be handled by the caller.
-    }
-}
-
-
-/**
- * Clears cells containing datetimes older than 1 hour in a specified range.
- * 
- * @param {string} mainSheetID - The ID of the main Google Sheets spreadsheet.
- * @param {string} version - The appendix to the name of the sheet tab.
- */
-async function clearOldCheckouts(mainSheetID, version) {
-    try {
-        const googleSheets = await getAuthenticatedClient();
-        
-        fancylog.log("resetting old checked out blocks")
-        
-        const FIRST_DATA_COLUMN_INDEX = 4; //D
-        const FIRST_DATA_ROW = 14;
-        const sheetTab = `simpleBlock${version ? version : ''}!`;
-        const range = `${sheetTab}D${FIRST_DATA_ROW}:AA`; // COMPLETED_BLOCKS
-
-
-        // Fetch the data from the range
-        const dataRequest = {
-            spreadsheetId: mainSheetID,
-            range: range
-        };
-        const response = await googleSheets.spreadsheets.values.get(dataRequest);
-        const data = response.data.values;
-
-        if (!data) {
-            fancylog.error("No data found in clearOldCheckouts query.");
-            return;
-        }
-
-        const now = new Date();
-        const clearRequests = [];
-        
-        // Iterate through the data to find and prepare cells to clear
-        data.forEach((row, rowIndex) => {
-            row.forEach((cell, colIndex) => {
-                fancylog.log(cell)
-                const parts = cell.split(" ");
-                for (let i = 0; i < parts.length; i++) {
-                    fancylog.log("   ", parts[i] + " " + parts[i + 1])
-                    // Check for datetime pattern and avoid splitting it
-                    if (i < parts.length - 1 && isDateTime(parts[i] + " " + parts[i + 1])) {
-                        const dateTime = convertToDateTime(parts[i] + " " + parts[i + 1]);
-                        fancylog.log("   ", "   ", dateTime)
-                        fancylog.log("   ", "   ", now)
-                        if (isMoreThanOneHourOld(dateTime, now)) {
-                            const cellAddress = `${convertToColumnName(colIndex + FIRST_DATA_COLUMN_INDEX)}${rowIndex + FIRST_DATA_ROW}`;
-                            clearRequests.push({
-                                range: `${sheetTab}${cellAddress}`,
-                                values: [[""]]
-                            });
-                        }
-                        i++;
-                    }
-                }
-            });
-        });
-        
-        fancylog.log(clearRequests)
-        
-
-        // Make a batch update if there are cells to clear
-        if (clearRequests.length > 0) {
-            const batchClearRequest = {
-                spreadsheetId: mainSheetID,
-                resource: {
-                    valueInputOption: 'RAW',
-                    data: clearRequests
-                }
-            };
-            await googleSheets.spreadsheets.values.batchUpdate(batchClearRequest);
-        }
-    } catch (error) {
-        fancylog.error("Error updating sheet:", error);
-        throw error;
-    }
-}
-
-
-
-/**
- * Checks if a string is a valid datetime.
- * @param {string} str - The string to check.
- * @returns {boolean} True if the string is a datetime, false otherwise.
- */
-function isDateTime(str) {
-    const regex = /^\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}:\d{2}$/;
-    return regex.test(str);
-}
-
-/**
- * Converts a string in the format "DD/MM/YYYY HH:MM:SS" to a JavaScript Date object.
- * @param {string} dateTimeStr - The date-time string to convert.
- * @returns {Date|null} The Date object if valid, null otherwise.
- */
-function convertToDateTime(dateTimeStr) {
-    const regex = /^\d{2}\/\d{2}\/\d{4}\s\d{2}:\d{2}:\d{2}$/;
-    
-    if (regex.test(dateTimeStr)) {
-        const parts = dateTimeStr.split(/\/|:| /);
-        // Note: Months are 0-indexed in JavaScript Date (0 for January, 1 for February, etc.)
-        return new Date(Date.UTC(parts[2], parts[1] - 1, parts[0], parts[3], parts[4], parts[5]));
-    } else {
-        return null;
-    }
-}
-
-
-/**
- * Checks if a datetime is more than one hour old.
- * @param {Date} dateTime - The datetime to check.
- * @param {Date} now - The current datetime.
- * @returns {boolean} True if the datetime is more than one hour old, false otherwise.
- */
-function isMoreThanOneHourOld(dateTime, now) {
-    return (now - dateTime) > 3600000; // 1 hour in milliseconds
-}
-
-
-/**
  * Fetches the contents of a Google Drive folder and returns a map of file names and direct download links.
  * 
  * @param {string} folderUrl - The Google Drive folder URL.
  * @returns {Promise<Object>} - An object containing file names and their direct download links.
  */
 async function fetchDriveFolderContents(folderUrl) {
-    const drive = await getAuthenticatedDriveClient()
-
-    // Extract folder ID from the URL
+    const drive = await getAuthenticatedDriveClient();
     const folderId = folderUrl.split('/').pop();
+    //fancylog.log(folderId);
     
-    fancylog.log(folderId)
-
     try {
-        // List all files in the folder
-        const response = await drive.files.list({
-            q: `'${folderId}' in parents`,
-            fields: 'files(id, name)',
-            orderBy: 'name'
-        });
-
-        // Process files to create a map of file names and download links
-        const files = response.data.files || [];
+        let pageToken = null;
         const fileMap = {};
 
-        files.forEach(file => {
-            // Construct the direct download link
-            const downloadLink = `https://drive.google.com/uc?export=download&id=${file.id}`;
-            fileMap[file.name] = downloadLink;
-        });
+        do {
+            // List files in the folder with pagination
+            const response = await drive.files.list({
+                q: `'${folderId}' in parents`,
+                fields: 'nextPageToken, files(id, name)',
+                pageSize: 1000,
+                pageToken: pageToken,
+                orderBy: 'name'
+            });
+
+            // Process files to create a map of file names and download links, excluding .DS_Store or similar
+            const files = response.data.files || [];
+            files.forEach(file => {
+                // Skip .DS_Store or any other specific files you want to exclude
+                if (!file.name.endsWith('.DS_Store') && !file.name.endsWith('Thumbs.db') && !file.name.startsWith('.')) {
+                    const downloadLink = `https://drive.google.com/uc?export=download&id=${file.id}`;
+                    fileMap[file.name] = {
+                        downloadLink: downloadLink,
+                        fileId: file.id
+                    };
+                }
+            });
+
+            pageToken = response.data.nextPageToken;
+        } while (pageToken);
 
         return fileMap;
     } catch (error) {
@@ -365,5 +229,106 @@ async function fetchDriveFolderContents(folderUrl) {
 }
 
 
+/**
+ * Writes the prolificID into the first empty cell in the row corresponding to the outcome.
+ * The outcome corresponds to a value in blockNames, and we want to fill the first available cell
+ * in the range outcomeFor in the row corresponding to the outcome in blockNames.
+ *
+ * @param {string} mainSheetID - The ID of the main Google Sheets spreadsheet.
+ * @param {string} version - The version identifier for the sheet tab.
+ * @param {string} prolificID - The Prolific ID of the participant.
+ * @param {string} outcome - The outcome value to identify the correct row in the sheet.
+ */
+async function saveStaircaseOutcome(mainSheetID, version, prolificID, outcome) {
+    const googleSheets = await getAuthenticatedClient();
 
-module.exports = { fetchStaircaseParams };
+    const sheetTab = `staircaseBlock${version ? version : ''}!`;
+
+    const FIRST_DATA_ROW = 20;
+    const FIRST_DATA_COLUMN_INDEX = 4; // Column D
+
+    const RANGES = [
+        `${sheetTab}B${FIRST_DATA_ROW}:B${FIRST_DATA_ROW + 19}` // BLOCK_NAMES_RANGE
+    ];
+
+    try {
+        // Fetch block names to find the row index
+        const response = await googleSheets.spreadsheets.values.batchGet({
+            spreadsheetId: mainSheetID,
+            ranges: RANGES
+        });
+
+        const sheetData = response.data.valueRanges;
+        fancylog.log(`sheetData: ${JSON.stringify(sheetData, null, 2)}`);
+
+        const blockNames = sheetData[0].values;
+
+        // Find the row index where blockNames[row][0] === outcome
+        let rowIndex = blockNames.findIndex(row => row[0] === String(outcome));
+
+        if (rowIndex === -1) {
+            throw new Error(`Outcome "${outcome}" not found in blockNames (${blockNames})`);
+        }
+
+        console.log(`rowIndex: ${rowIndex}`);
+
+        // Calculate the actual row number in the sheet
+        const sheetRowNumber = FIRST_DATA_ROW + rowIndex;
+
+        // Define the range to fetch data in that row from column D onwards
+        const startColumnName = convertToColumnName(FIRST_DATA_COLUMN_INDEX); // Column D
+        const endColumnName = convertToColumnName(100); // Adjust the end column as needed
+        const dataRange = `${sheetTab}${startColumnName}${sheetRowNumber}:${endColumnName}${sheetRowNumber}`;
+
+        // Fetch the data in that row
+        const outcomeRowResponse = await googleSheets.spreadsheets.values.get({
+            spreadsheetId: mainSheetID,
+            range: dataRange
+        });
+
+        const outcomeRow = outcomeRowResponse.data.values ? outcomeRowResponse.data.values[0] : [];
+
+        // Find the first empty cell in the row
+        let columnIndex;
+
+        if (!outcomeRow || outcomeRow.length === 0) {
+            // The row is empty, write to the first column (column D)
+            columnIndex = 0;
+        } else {
+            // Find the first empty cell
+            columnIndex = outcomeRow.findIndex(cell => !cell || cell === '');
+
+            // If no empty cell found, append to the end
+            if (columnIndex === -1) {
+                columnIndex = outcomeRow.length;
+            }
+        }
+
+        // Calculate the actual column index in the sheet
+        const actualColumnIndex = FIRST_DATA_COLUMN_INDEX + columnIndex;
+        const cellColumnName = convertToColumnName(actualColumnIndex);
+
+        const toBeFilledCell = `${cellColumnName}${sheetRowNumber}`;
+
+        // Proceed to update the cell with the prolificID
+        const checkInRequest = {
+            spreadsheetId: mainSheetID,
+            range: `${sheetTab}${toBeFilledCell}`,
+            valueInputOption: 'RAW',
+            resource: {
+                values: [[prolificID]]
+            }
+        };
+
+        await googleSheets.spreadsheets.values.update(checkInRequest);
+
+    } catch (error) {
+        fancylog.error("Error posting to sheet:", error);
+        throw error; // Rethrow the error to be handled by the caller.
+    }
+}
+
+
+
+
+module.exports = { fetchStaircaseParams, saveStaircaseOutcome};

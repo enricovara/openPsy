@@ -28,8 +28,10 @@ async function fetchBlockParams(mainSheetID, prolificID, version) {
         `${sheetTab}D3`,                    // BLOCKS_N_RANGE
         `${sheetTab}D4`,                    // MESSAGE_BEFORE_BLOCK_RANGE
         `${sheetTab}D5`,                    // MESSAGE_AFTER_BLOCK_RANGE
+        `${sheetTab}J5`,                    // GIVE_END_HERE_OPTION_AFTER_BLOCK
         `${sheetTab}D7`,                    // RANDOMISE_WITHIN_BLOCKS_RANGE
-        `${sheetTab}D10:H13`,               // QUESTIONS_RANGE
+        `${sheetTab}D9`,                    // RESPONSE_TYPE
+        `${sheetTab}D11:H14`,               // QUESTIONS_RANGE
         `${sheetTab}D15`,                   // QUESTIONS_PRESENTATION_LOGIC
         `${sheetTab}D${FIRST_DATA_ROW}:AA`, // COMPLETED_BLOCKS
         `${sheetTab}C${FIRST_DATA_ROW}:C`,  // BLOCK_MEDIA_ADDRESS_RANGE
@@ -53,8 +55,9 @@ async function fetchBlockParams(mainSheetID, prolificID, version) {
         const presentationLogic = sheetData[0].values[0][0];
         const blocksN = sheetData[1].values[0][0];
         const messageBeforeBlock = sheetData[2]?.values[0][0] ?? undefined;
-        const messageAfterBlock = sheetData[3]?.values[0][0] ?? undefined;        
-        const randomiseTrialsWithinBlock = sheetData[4]?.values[0][0] ?? undefined;        
+        const messageAfterBlock = sheetData[3]?.values[0][0] ?? undefined;
+        const giveEndAfterBlockOption = sheetData[4]?.values[0][0] ?? undefined;   
+        const randomiseTrialsWithinBlock = sheetData[5]?.values[0][0] ?? undefined;        
         
         fancylog.log(`presentationLogic: ${presentationLogic}`);
         fancylog.log(`blocksN: ${blocksN}`);
@@ -63,26 +66,29 @@ async function fetchBlockParams(mainSheetID, prolificID, version) {
         if (presentationLogic !== "Each block is presented to N participant(s) only") {
             throw new Error("Invalid presentation logic");
         }
+
+        // Fetching the response type (GRID, questions, etc)
+        const responseType = sheetData[6].values[0][0];      
         
         // Fetching and processing the questions and answers
-        const questionsData = sheetData[5].values;
-        const questionsAndAnswers = questionsData.reduce((acc, row) => {
+        const questionsData = sheetData[7].values;
+        const questionsAndAnswers = questionsData ? questionsData.reduce((acc, row) => {
             const question = row[0];
             if (question) { // Check if the question is not falsy
                 const answers = row.slice(1).filter(answer => answer); // Filter out falsy answers
                 acc.push({ question, answers });
             }
             return acc;
-        }, []);
+        }, []) : undefined;
         
-        const questionsPresentationLogic = sheetData[6].values[0][0];
+        const questionsPresentationLogic = sheetData[8].values[0][0];
 
         fancylog.log(`Questions and Answers: ${JSON.stringify(questionsAndAnswers, null, 2)}`);
         fancylog.log(`Questions presentation logic: ${questionsPresentationLogic}`);
 
-        const completedBlocksList = sheetData[7].values;
-        const blockMediaAddressList = sheetData[8].values;
-        const blockNamesList = sheetData[9].values;
+        const completedBlocksList = sheetData[9].values;
+        const blockMediaAddressList = sheetData[10].values;
+        const blockNamesList = sheetData[11].values;
         
         fancylog.log("completedBlocksList", completedBlocksList)
         fancylog.log(blockMediaAddressList)
@@ -160,6 +166,8 @@ async function fetchBlockParams(mainSheetID, prolificID, version) {
             blocksN,
             messageBeforeBlock,
             messageAfterBlock,
+            giveEndAfterBlockOption,
+            responseType,
             questionsAndAnswers,
             questionsPresentationLogic,
             blockMediaAddress,

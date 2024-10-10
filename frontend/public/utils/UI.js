@@ -1,4 +1,3 @@
-const { callOnce } = require("nuxt/app");
 
 /**
  * Dynamically creates a new container (div element) with default and additional custom styles.
